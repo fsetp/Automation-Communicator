@@ -1,8 +1,8 @@
 ################################################################################
 #
 # coding:utf-8
-import serial				# pyserialモジュール
-import tkinter as tk		# tkモジュール
+import serial
+import tkinter as tk
 import tkinter.scrolledtext
 import time
 from datetime import datetime
@@ -10,10 +10,13 @@ from datetime import datetime
 from time import sleep
 from tkinter import ttk
 
-
+########################################
+#
 ser = None
 loopFlg = 0
 
+########################################
+#
 ComChText	= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 BaudText	= ['9600', '115200']
 DacChText	= ['0', '1']
@@ -79,7 +82,6 @@ def Open_clicked():
 #
 def Close_clicked():
 	global ser
-	ser.write("syst:loc\n".encode("utf-8"))
 	btnOpen['state'] = tk.NORMAL		# Open
 	btnClose['state'] = tk.DISABLED		# Close
 	btnInit['state'] = tk.NORMAL		# Init
@@ -184,7 +186,7 @@ idxFunc = 0
 
 ########################################
 #
-def interval_work():							# インターバルで行う処理を記述
+def interval_work():
 	global loopFlg
 	global idxFunc
 	global ser
@@ -197,7 +199,7 @@ def interval_work():							# インターバルで行う処理を記述
 
 #	txtRecive.see('end')
 	if (loopFlg == 1):
-		root.after(IntervalMs, interval_work)			  # インターバルの時間(ms)を指定
+		root.after(IntervalMs, interval_work)
 
 ########################################
 #
