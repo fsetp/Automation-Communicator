@@ -23,6 +23,7 @@ DacChText	= ['0', '1']
 def dac_command_text(ch, value):
 	return 'dac ' + str(ch) + ' ' + str(value)
 
+#def stateForOpen():
 
 ########################################
 #
@@ -33,13 +34,19 @@ def Open_clicked():
 	btnClose['state'] = tk.NORMAL		# Close
 	btnInit['state'] = tk.NORMAL		# Init
 	btnExit['state'] = tk.DISABLED		# Exit
-	btnDac['state'] = tk.NORMAL			# Exit
+	cbDacCh['state'] = tk.DISABLED		# 
+	dacValue['state'] = tk.DISABLED		# 
+	btnDac['state'] = tk.NORMAL			# Dac
 	btnScale['state'] = tk.NORMAL		# 
 	btnScaleZero['state'] = tk.NORMAL	# 
 	btnAmeter['state'] = tk.NORMAL		# 
 	btnLoop['state'] = tk.NORMAL		# Loop
 	btnStop['state'] = tk.DISABLED		# Stop
-	txtRecive.delete('1.0',tk.END)
+	txtDacCh['state'] = tk.NORMAL		# 
+	txtMvStep['state'] = tk.NORMAL		# 
+	txtMvFrom['state'] = tk.NORMAL		# 
+	txtMvTo['state'] = tk.NORMAL		# 
+	txtRecive.delete('1.0',tk.END)		# 
 
 	try:
 		com = 'COM' + cbDevCom.get()
@@ -55,11 +62,18 @@ def Open_clicked():
 		btnClose['state'] = tk.DISABLED		# Close
 		btnInit['state'] = tk.DISABLED		# Init
 		btnExit['state'] = tk.NORMAL		# Exit
+		cbDacCh['state'] = tk.DISABLED		# 
+		dacValue['state'] = tk.DISABLED		# 
+		btnDac['state'] = tk.DISABLED		# Dac
 		btnScale['state'] = tk.DISABLED		# 
 		btnScaleZero['state'] = tk.DISABLED	# 
 		btnAmeter['state'] = tk.DISABLED	# 
 		btnLoop['state'] = tk.DISABLED		# Loop
 		btnStop['state'] = tk.DISABLED		# Stop
+		txtDacCh['state'] = tk.DISABLED		# 
+		txtMvStep['state'] = tk.DISABLED	# 
+		txtMvFrom['state'] = tk.DISABLED	# 
+		txtMvTo['state'] = tk.DISABLED		# 
 
 ########################################
 #
@@ -70,11 +84,18 @@ def Close_clicked():
 	btnClose['state'] = tk.DISABLED		# Close
 	btnInit['state'] = tk.NORMAL		# Init
 	btnExit['state'] = tk.NORMAL		# Exit
+	cbDacCh['state'] = tk.NORMAL		# 
+	dacValue['state'] = tk.NORMAL		# 
+	btnDac['state'] = tk.DISABLED		# Dac
 	btnScale['state'] = tk.DISABLED		# 
 	btnScaleZero['state'] = tk.DISABLED	# 
 	btnAmeter['state'] = tk.DISABLED	# 
 	btnLoop['state'] = tk.DISABLED		# Loop
 	btnStop['state'] = tk.DISABLED		# Stop
+	txtDacCh['state'] = tk.DISABLED		# 
+	txtMvStep['state'] = tk.DISABLED	# 
+	txtMvFrom['state'] = tk.DISABLED	# 
+	txtMvTo['state'] = tk.DISABLED		# 
 	ser.close()
 
 
@@ -109,7 +130,6 @@ def PreProcess():
 	# set current
 	#
 	DacCh = txtDacCh.get()
-
 	DacValue = txtMvFrom.get()
 	dac_text = dac_command_text(DacCh, DacValue) + '\r\n'
 	ser.write(dac_text.encode('shift-jis'))
@@ -205,13 +225,11 @@ def DAC_clicked():
 	ch		= cbDacCh.get()
 	value	= dacValue.get()
 
-#	text = 'dac ' + ch + ' ' + value + '\r\n'
 	text = dac_command_text(ch, value) + '\r\n'
 
 	ser.write(text.encode('shift-jis'))
 	print('dac ' + ch + ' ' + value)
 	sleep(0.1)
-#	txtRcv = ser.read(256)
 	txtRcv = ser.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
@@ -222,7 +240,6 @@ def SCALE_clicked():
 	global ser
 	ser.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
-#	txtRcv = ser.read(256)
 	txtRcv = ser.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
@@ -233,7 +250,6 @@ def ZERO_clicked():
 	global ser
 	ser.write("scale zero\r\n".encode('shift-jis'))
 	sleep(0.1)
-#	txtRcv = ser.read(256)
 	txtRcv = ser.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
@@ -244,7 +260,6 @@ def AMETER_clicked():
 	global ser
 	ser.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
-#	txtRcv = ser.read(16)
 	txtRcv = ser.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	text = str(txtRcv)
@@ -277,7 +292,7 @@ def Stop_clicked():
 #
 root = tk.Tk()
 #root.geometry('430x320')
-root.geometry('440x340')
+root.geometry('440x370')
 root.title('Communicator Tool for Atom Shell')
 
 row_idx = 0
@@ -326,17 +341,17 @@ row_idx += 1
 
 ########################################
 # Dac
-label_ch = tk.Label(root, text = 'Ch:')
+label_ch = tk.Label(root, text = 'Ch : ')
 label_ch.grid(row = row_idx, column = 0, sticky = tk.E, pady = 10)
 
-cbDacCh = ttk.Combobox(root, width = 1, value = DacChText)
+cbDacCh = ttk.Combobox(root, width = 1, value = DacChText, state = tk.DISABLED)
 cbDacCh.set(DacChText[0])
 cbDacCh.grid(row = row_idx, column = 1, sticky = tk.W)
 
-label_dac = tk.Label(root, text = 'DAC(mV):')
+label_dac = tk.Label(root, text = 'DAC(mV) : ')
 label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-dacValue = ttk.Entry(root, width = 6 )
+dacValue = ttk.Entry(root, width = 6, state = tk.DISABLED)
 dacValue.delete(0, tk.END)
 dacValue.insert(tk.END, '3000')
 dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
@@ -369,15 +384,15 @@ row_idx += 1
 labelCh = tk.Label(root, text = 'DAC Ch:')
 labelCh.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
-txtDacCh = ttk.Entry(root, width = 4 )
+txtDacCh = ttk.Entry(root, width = 4, state = tk.DISABLED)
 txtDacCh.delete(0, tk.END)
 txtDacCh.insert(tk.END, '0')
 txtDacCh.grid(row = row_idx, column = 1, sticky = tk.W)
 
-labelMvStep = tk.Label(root, text = 'mV Step:')
+labelMvStep = tk.Label(root, text = 'mV Step :')
 labelMvStep.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtMvStep = ttk.Entry(root, width = 10 )
+txtMvStep = ttk.Entry(root, width = 10, state = tk.DISABLED)
 txtMvStep.delete(0, tk.END)
 txtMvStep.insert(tk.END, '2')
 txtMvStep.grid(row = row_idx, column = 3, sticky = tk.W)
@@ -387,21 +402,20 @@ txtMvStep.grid(row = row_idx, column = 3, sticky = tk.W)
 btnLoop = tk.Button(master = root, text = 'LOOP', command = Loop_clicked, state = tk.DISABLED, width = 10)
 btnLoop.grid(row = row_idx, column = 4, pady = 3)
 
-row_idx += 1
+row_idx += 1 
 
-labelMvFrom = tk.Label(root, text = 'mV from:')
+labelMvFrom = tk.Label(root, text = 'mV from :')
 labelMvFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
-txtMvFrom = ttk.Entry(root, width = 10 )
+txtMvFrom = ttk.Entry(root, width = 10, state = tk.DISABLED)
 txtMvFrom.delete(0, tk.END)
 txtMvFrom.insert(tk.END, '0')
 txtMvFrom.grid(row = row_idx, column = 1, sticky = tk.W)
 
-
-labelMvTo = tk.Label(root, text = 'mV to:')
+labelMvTo = tk.Label(root, text = 'mV to :')
 labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtMvTo = ttk.Entry(root, width = 10 )
+txtMvTo = ttk.Entry(root, width = 10, state = tk.DISABLED)
 txtMvTo.delete(0, tk.END)
 txtMvTo.insert(tk.END, '1000')
 txtMvTo.grid(row = row_idx, column = 3, sticky = tk.W)
