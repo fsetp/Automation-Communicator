@@ -20,6 +20,7 @@ g_loopFlg = 0
 ComChText	= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 BaudText	= ['9600', '115200']
 DacChText	= ['0', '1']
+MethodText	= ['Normal', 'Dither']
 
 ########################################
 #
@@ -139,15 +140,11 @@ def Close_clicked():
 	btnDitherOff['state'] = tk.DISABLED		#
 	ser.close()
 
-
-
+########################################
 #	pre-process
 #	wait second
 #	post-process
 #
-#
-#
-
 g_IntervalMs	= int(100)
 g_WaitMs		= int(5000)
 g_WaitItvMs		= int(50)
@@ -179,12 +176,19 @@ def PreProcess():
 	timetext = time.strftime('%Y/%m/%d %H:%M:%S')
 	print(timetext)
 
-	# set current
-	#
-	DacCh = cbDacCh2.get()
-	dac_text = dac_command_text(DacCh, g_DacValue) + '\r\n'
-	ser.write(dac_text.encode('shift-jis'))
-	print(dac_text)
+	# if normal selected
+	if (cbDacMethod.current() == 0):
+
+		# set current
+		#
+		DacCh = cbDacCh2.get()
+		dac_text = dac_command_text(DacCh, g_DacValue) + '\r\n'
+		ser.write(dac_text.encode('shift-jis'))
+		print(dac_text)
+
+	# if dither selected
+	else:
+		pass
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
@@ -229,28 +233,42 @@ def PostProcess():
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
-	#
+	# rise up
 	if (g_DacDir):
+		# under 'To' value
 		nTo = int(txtMvTo.get())
 		if (g_DacValue < nTo):
 			g_DacValue += int(txtMvStep.get())
 			print('dac : ' + str(g_DacValue))
 
+			# arrive at top
 			if (g_DacValue == nTo):
 				if (g_DacDir):
 					g_DacDir = False
 
+		# reach at top
 		else:
 			if (g_DacDir):
 				g_DacDir = False
+
+	# fall down
 	else:
+		# over 'From' value
 		nFrom = int(txtMvFrom.get())
 		if (g_DacValue > nFrom):
 			g_DacValue -= int(txtMvStep.get())
 			print('dac : ' + str(g_DacValue))
 
+		# reach at 'From' value
 		else:
-			g_loopFlg = 0
+
+			# if normal selecter
+			if (cbDacMethod.current() == 1):
+				g_loopFlg = 0
+
+			# if dither selected
+			else:
+				pass
 
 	return True
 
@@ -351,20 +369,25 @@ def AMETER_clicked():
 #	value = float(text)
 	print(text)
 
-
 ########################################
 #
 def Sequence_clicked():
 	global g_loopFlg
 
-	g_loopFlg = 1 
 	btnSequence['state'] = tk.DISABLED
 	btnStop['state'] = tk.NORMAL
 	txtRecive.delete('1.0',tk.END)
 
 	InitProcess()
 
-	interval_work()
+	# if normal selected
+	if (cbDacMethod.current() == 0):
+		g_loopFlg = 1 
+		interval_work()
+
+	# if dither selecter
+	else:
+		pass
 
 ########################################
 #
@@ -450,8 +473,8 @@ row_idx = 0
 col_idx = 0
 
 ########################################
-#
-labelCom = tk.Label(root, text = ' COM :')
+# serial com
+labelCom = tk.Label(root, text = ' COM : ')
 labelCom.grid(row = row_idx, column = 0, sticky = tk.E)
 
 cbDevCom = ttk.Combobox(root, width = 2, values = ComChText)
@@ -459,8 +482,8 @@ cbDevCom.current(4)
 cbDevCom.grid(row = row_idx, column = 1)
 
 ########################################
-#
-labelBaud = tk.Label(root, text = ' Baud :')
+# baud rate
+labelBaud = tk.Label(root, text = ' Baud : ')
 labelBaud.grid(row = row_idx, column = 2, sticky = tk.E)
 
 cbDevBaud = ttk.Combobox(root, width = 8, values = BaudText)
@@ -510,36 +533,37 @@ dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
 btnDac = tk.Button(master = root, text = 'DAC', command = DAC_clicked, state = tk.DISABLED, width = 10)
 btnDac.grid(row = row_idx, column = 4, pady = 3)
 
-
 row_idx += 1
 ########################################
-#
+# scale
 btnScale = tk.Button(master = root, text = 'SCALE', command = SCALE_clicked, state = tk.DISABLED, width = 10)
 btnScale.grid(row = row_idx, column = 0, pady = 3)
 
 ########################################
-#
+# scale zero
 btnScaleZero = tk.Button(master = root, text = 'ZERO', command = ZERO_clicked, state = tk.DISABLED, width = 10)
 btnScaleZero.grid(row = row_idx, column = 1, pady = 3)
 
 row_idx += 1
 
 ########################################
-#
+# ameter
 btnAmeter = tk.Button(master = root, text = 'AMETER', command = AMETER_clicked, state = tk.DISABLED, width = 10)
 btnAmeter.grid(row = row_idx, column = 1)
 
 row_idx += 1
 ########################################
-#
-labelCh2 = tk.Label(root, text = 'DAC Ch:')
+# dac
+labelCh2 = tk.Label(root, text = 'DAC Ch : ')
 labelCh2.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
 cbDacCh2 = ttk.Combobox(root, width = 1, value = DacChText, state = tk.DISABLED)
 cbDacCh2.set(DacChText[0])
 cbDacCh2.grid(row = row_idx, column = 1, sticky = tk.W)
 
-labelMvStep = tk.Label(root, text = 'mV Step :')
+########################################
+# mv step
+labelMvStep = tk.Label(root, text = 'mV Step : ')
 labelMvStep.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtMvStep = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -554,7 +578,18 @@ btnSequence.grid(row = row_idx, column = 4, pady = 3)
 
 row_idx += 1 
 
-labelWaitMs = tk.Label(root, text = 'Wait ms :')
+########################################
+#
+labelMethod = tk.Label(root, text = 'Method : ')
+labelMethod.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+cbDacMethod = ttk.Combobox(root, width = 8, value = MethodText, state = tk.DISABLED)
+cbDacMethod.set(MethodText[0])
+cbDacMethod.grid(row = row_idx, column = 1, sticky = tk.W)
+
+########################################
+# wait ms
+labelWaitMs = tk.Label(root, text = 'Wait ms : ')
 labelWaitMs.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtWaitMs = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -564,7 +599,9 @@ txtWaitMs.grid(row = row_idx, column = 3, sticky = tk.W)
 
 row_idx += 1 
 
-labelMvFrom = tk.Label(root, text = 'mV from :')
+########################################
+#
+labelMvFrom = tk.Label(root, text = 'mV from : ')
 labelMvFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
 txtMvFrom = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -572,7 +609,9 @@ txtMvFrom.delete(0, tk.END)
 txtMvFrom.insert(tk.END, '0')
 txtMvFrom.grid(row = row_idx, column = 1, sticky = tk.W)
 
-labelMvTo = tk.Label(root, text = 'mV to :')
+########################################
+#
+labelMvTo = tk.Label(root, text = 'mV to : ')
 labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtMvTo = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -589,14 +628,14 @@ row_idx += 1
 
 ########################################
 #
-labelCh3 = tk.Label(root, text = 'DAC Ch:')
+labelCh3 = tk.Label(root, text = 'DAC Ch : ')
 labelCh3.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
 cbDacCh3 = ttk.Combobox(root, width = 1, value = DacChText, state = tk.DISABLED)
 cbDacCh3.set(DacChText[0])
 cbDacCh3.grid(row = row_idx, column = 1, sticky = tk.W)
 
-labelMvCenter = tk.Label(root, text = 'mV (center) :')
+labelMvCenter = tk.Label(root, text = 'mV (center) : ')
 labelMvCenter.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtMvCenter = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -609,7 +648,7 @@ btnDitherOn.grid(row = row_idx, column = 4, pady = 3)
 
 row_idx += 1
 
-labelLevel = tk.Label(root, text = 'Level (%) :')
+labelLevel = tk.Label(root, text = 'Level (%) : ')
 labelLevel.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
 txtLevel = ttk.Entry(root, width = 6, state = tk.DISABLED)
@@ -617,7 +656,7 @@ txtLevel.delete(0, tk.END)
 txtLevel.insert(tk.END, '10')
 txtLevel.grid(row = row_idx, column = 1, sticky = tk.W)
 
-labelFreq = tk.Label(root, text = 'Frequency (Hz) :')
+labelFreq = tk.Label(root, text = 'Frequency (Hz) : ')
 labelFreq.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtFreq = ttk.Entry(root, width = 8, state = tk.DISABLED)
