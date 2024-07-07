@@ -13,7 +13,7 @@ from tkinter import ttk
 ########################################
 #
 ser = None
-loopFlg = 0
+g_loopFlg = 0
 
 ########################################
 #
@@ -49,6 +49,9 @@ def Open_clicked():
 	txtMvStep['state'] = tk.NORMAL			# 
 	txtMvStep.delete(0, tk.END)				
 	txtMvStep.insert(tk.END, '2')			
+	txtWaitMs['state'] = tk.NORMAL			
+	txtWaitMs.delete(0, tk.END)				
+	txtWaitMs.insert(tk.END, '5000')		
 	txtMvFrom['state'] = tk.NORMAL			# 
 	txtMvFrom.delete(0, tk.END)				
 	txtMvFrom.insert(tk.END, '0')			
@@ -94,6 +97,7 @@ def Open_clicked():
 		btnStop['state'] = tk.DISABLED			# Stop
 		cbDacCh2['state'] = tk.DISABLED			# 
 		txtMvStep['state'] = tk.DISABLED		# 
+		txtWaitMs['state'] = tk.DISABLED		
 		txtMvFrom['state'] = tk.DISABLED		# 
 		txtMvTo['state'] = tk.DISABLED			# 
 		cbDacCh3['state'] = tk.DISABLED			# 
@@ -123,6 +127,7 @@ def Close_clicked():
 	btnStop['state'] = tk.DISABLED			# Stop
 	cbDacCh2['state'] = tk.DISABLED			# 
 	txtMvStep['state'] = tk.DISABLED		# 
+	txtWaitMs['state'] = tk.DISABLED		
 	txtMvFrom['state'] = tk.DISABLED		# 
 	txtMvTo['state'] = tk.DISABLED			# 
 	cbDacCh3['state'] = tk.DISABLED			# 
@@ -143,23 +148,27 @@ def Close_clicked():
 #
 #
 
-g_IntervalMs = int(100)
-g_WaitSecNum = int(5)
-g_WaitItvMs = int(50)
-g_DacValue = int(0)
+g_IntervalMs	= int(100)
+g_WaitMs		= int(5000)
+g_WaitItvMs		= int(50)
+g_DacValue		= int(0)
+g_DacDir		= True;		# true:increase
 
 ########################################
 #
 def InitProcess():
 	global g_DacValue
+	global g_WaitMs
+	global g_DacDir
 
-	g_DacValue = int(txtMvFrom.get())
+	g_DacDir	= True;
+	g_DacValue	= int(txtMvFrom.get())
+	g_WaitMs	= int(txtWaitMs.get())
 
 ########################################
 #
 def PreProcess():
 	global g_IntervalMs
-	global g_WaitSecNum
 	global g_WaitItvMs
 	global g_DacValue
 
@@ -173,13 +182,12 @@ def PreProcess():
 	# set current
 	#
 	DacCh = cbDacCh2.get()
-#	g_DacValue = txtMvFrom.get()
 	dac_text = dac_command_text(DacCh, g_DacValue) + '\r\n'
 	ser.write(dac_text.encode('shift-jis'))
 	print(dac_text)
 
 	# make wait count
-	g_WaitItvMs = g_WaitSecNum * 1000 / g_IntervalMs
+	g_WaitItvMs = g_WaitMs / g_IntervalMs
 
 	return True
 
@@ -199,6 +207,8 @@ def WaitSecond():
 #
 def PostProcess():
 	global g_DacValue
+	global g_DacDir
+	global g_loopFlg
 
 	print('Post Process')
 
@@ -219,8 +229,28 @@ def PostProcess():
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
-	g_DacValue += int(txtMvStep.get())
-	print('dac : ' + str(g_DacValue))
+	#
+	if (g_DacDir):
+		nTo = int(txtMvTo.get())
+		if (g_DacValue < nTo):
+			g_DacValue += int(txtMvStep.get())
+			print('dac : ' + str(g_DacValue))
+
+			if (g_DacValue == nTo):
+				if (g_DacDir):
+					g_DacDir = False
+
+		else:
+			if (g_DacDir):
+				g_DacDir = False
+	else:
+		nFrom = int(txtMvFrom.get())
+		if (g_DacValue > nFrom):
+			g_DacValue -= int(txtMvStep.get())
+			print('dac : ' + str(g_DacValue))
+
+		else:
+			g_loopFlg = 0
 
 	return True
 
@@ -232,7 +262,7 @@ idxFunc = 0
 ########################################
 #
 def interval_work():
-	global loopFlg
+	global g_loopFlg
 	global idxFunc
 	global ser
 	global g_DacValue
@@ -244,8 +274,12 @@ def interval_work():
 			idxFunc = 0
 
 #	txtRecive.see('end')
-	if (loopFlg == 1):
+	if (g_loopFlg == 1):
 		root.after(g_IntervalMs, interval_work)
+
+	else:
+		btnSequence['state'] = tk.NORMAL		# Loop
+		btnStop['state'] = tk.DISABLED			# Stop
 
 ########################################
 #
@@ -321,9 +355,9 @@ def AMETER_clicked():
 ########################################
 #
 def Sequence_clicked():
-	global loopFlg
+	global g_loopFlg
 
-	loopFlg = 1 
+	g_loopFlg = 1 
 	btnSequence['state'] = tk.DISABLED
 	btnStop['state'] = tk.NORMAL
 	txtRecive.delete('1.0',tk.END)
@@ -335,8 +369,8 @@ def Sequence_clicked():
 ########################################
 #
 def Stop_clicked():
-	global loopFlg
-	loopFlg = 0
+	global g_loopFlg
+	g_loopFlg = 0
 	btnSequence['state'] = tk.NORMAL
 	btnStop['state'] = tk.DISABLED
 
@@ -517,6 +551,16 @@ txtMvStep.grid(row = row_idx, column = 3, sticky = tk.W)
 # Sequence
 btnSequence = tk.Button(master = root, text = 'SEQUENCE', command = Sequence_clicked, state = tk.DISABLED, width = 10)
 btnSequence.grid(row = row_idx, column = 4, pady = 3)
+
+row_idx += 1 
+
+labelWaitMs = tk.Label(root, text = 'Wait ms :')
+labelWaitMs.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+txtWaitMs = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtWaitMs.delete(0, tk.END)
+txtWaitMs.insert(tk.END, '5000')
+txtWaitMs.grid(row = row_idx, column = 3, sticky = tk.W)
 
 row_idx += 1 
 
