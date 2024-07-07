@@ -44,7 +44,8 @@ def Open_clicked():
 	btnScale['state'] = tk.NORMAL			# 
 	btnScaleZero['state'] = tk.NORMAL		# 
 	btnAmeter['state'] = tk.NORMAL			# 
-	btnSequence['state'] = tk.NORMAL		# Loop
+	btnSequence['state'] = tk.NORMAL		#
+	cbDacMethod['state'] = tk.NORMAL		#
 	btnStop['state'] = tk.DISABLED			# Stop
 	cbDacCh2['state'] = tk.NORMAL			# 
 	txtMvStep['state'] = tk.NORMAL			# 
@@ -94,7 +95,8 @@ def Open_clicked():
 		btnScale['state'] = tk.DISABLED			# 
 		btnScaleZero['state'] = tk.DISABLED		# 
 		btnAmeter['state'] = tk.DISABLED		# 
-		btnSequence['state'] = tk.DISABLED		# Loop
+		btnSequence['state'] = tk.DISABLED		#
+		cbDacMethod['state'] = tk.DISABLED		#
 		btnStop['state'] = tk.DISABLED			# Stop
 		cbDacCh2['state'] = tk.DISABLED			# 
 		txtMvStep['state'] = tk.DISABLED		# 
@@ -108,7 +110,6 @@ def Open_clicked():
 		btnDitherOn['state'] = tk.DISABLED		#
 		btnDitherReflect['state'] = tk.DISABLED	#
 		btnDitherOff['state'] = tk.DISABLED		#
-
 
 ########################################
 #
@@ -124,7 +125,8 @@ def Close_clicked():
 	btnScale['state'] = tk.DISABLED			# 
 	btnScaleZero['state'] = tk.DISABLED		# 
 	btnAmeter['state'] = tk.DISABLED		# 
-	btnSequence['state'] = tk.DISABLED		# Loop
+	btnSequence['state'] = tk.DISABLED		#
+	cbDacMethod['state'] = tk.DISABLED		#
 	btnStop['state'] = tk.DISABLED			# Stop
 	cbDacCh2['state'] = tk.DISABLED			# 
 	txtMvStep['state'] = tk.DISABLED		# 
@@ -466,7 +468,7 @@ def DitherOff_clicked():
 #
 root = tk.Tk()
 #root.geometry('430x320')
-root.geometry('440x370')
+root.geometry('440x500')
 root.title('Communicator Tool for Atom Shell')
 
 row_idx = 0
@@ -635,6 +637,8 @@ cbDacCh3 = ttk.Combobox(root, width = 1, value = DacChText, state = tk.DISABLED)
 cbDacCh3.set(DacChText[0])
 cbDacCh3.grid(row = row_idx, column = 1, sticky = tk.W)
 
+########################################
+#
 labelMvCenter = tk.Label(root, text = 'mV (center) : ')
 labelMvCenter.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
@@ -643,11 +647,16 @@ txtMvCenter.delete(0, tk.END)
 txtMvCenter.insert(tk.END, '1000')
 txtMvCenter.grid(row = row_idx, column = 3, sticky = tk.W)
 
+########################################
+#
+
 btnDitherOn = tk.Button(master = root, text = 'Dither On', command = DitherOn_clicked, state = tk.DISABLED, width = 10)
 btnDitherOn.grid(row = row_idx, column = 4, pady = 3)
 
 row_idx += 1
 
+########################################
+#
 labelLevel = tk.Label(root, text = 'Level (%) : ')
 labelLevel.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
@@ -656,6 +665,8 @@ txtLevel.delete(0, tk.END)
 txtLevel.insert(tk.END, '10')
 txtLevel.grid(row = row_idx, column = 1, sticky = tk.W)
 
+########################################
+#
 labelFreq = tk.Label(root, text = 'Frequency (Hz) : ')
 labelFreq.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
@@ -664,11 +675,15 @@ txtFreq.delete(0, tk.END)
 txtFreq.insert(tk.END, '1000')
 txtFreq.grid(row = row_idx, column = 3, sticky = tk.W)
 
+########################################
+#
 btnDitherReflect = tk.Button(master = root, text = 'Reflect', command = DitherReflect_clicked, state = tk.DISABLED, width = 10)
 btnDitherReflect.grid(row = row_idx, column = 4, pady = 3)
 
 row_idx += 1
 
+########################################
+#
 btnDitherOff = tk.Button(master = root, text = 'Dither Off', command = DitherOff_clicked, state = tk.DISABLED, width = 10)
 btnDitherOff.grid(row = row_idx, column = 4, pady = 3)
 
