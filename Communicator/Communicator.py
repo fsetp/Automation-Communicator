@@ -1,9 +1,12 @@
 ################################################################################
 #
 # coding:utf-8
+import os
+import csv
 import serial
 import tkinter as tk
 import tkinter.scrolledtext
+import tkinter.filedialog
 import time
 from datetime import datetime
 
@@ -12,8 +15,9 @@ from tkinter import ttk
 
 ########################################
 #
-ser = None
-g_loopFlg = 0
+g_serial		= None
+g_loopFlg		= 0
+g_DataFileName	= None
 
 ########################################
 #
@@ -29,17 +33,14 @@ def dac_command_text(ch, value):
 
 ########################################
 #
-def Open_clicked():
-	global ser
-
+def EnableWidget():
 	btnOpen['state'] = tk.DISABLED			# Open
 	btnClose['state'] = tk.NORMAL			# Close
+	btnFile['state'] = tk.NORMAL			#
 	btnInit['state'] = tk.NORMAL			# Init
 	btnExit['state'] = tk.DISABLED			# Exit
 	cbDacCh['state'] = tk.NORMAL			# 
 	dacValue['state'] = tk.NORMAL			# 
-	dacValue.delete(0, tk.END)				
-	dacValue.insert(tk.END, '3000')			
 	btnDac['state'] = tk.NORMAL				# Dac
 	btnScale['state'] = tk.NORMAL			# 
 	btnScaleZero['state'] = tk.NORMAL		# 
@@ -49,75 +50,25 @@ def Open_clicked():
 	btnStop['state'] = tk.DISABLED			# Stop
 	cbDacCh2['state'] = tk.NORMAL			# 
 	txtMvStep['state'] = tk.NORMAL			# 
-	txtMvStep.delete(0, tk.END)				
-	txtMvStep.insert(tk.END, '2')			
-	txtWaitMs['state'] = tk.NORMAL			
-	txtWaitMs.delete(0, tk.END)				
-	txtWaitMs.insert(tk.END, '5000')		
+	txtWaitMs['state'] = tk.NORMAL			#
 	txtMvFrom['state'] = tk.NORMAL			# 
-	txtMvFrom.delete(0, tk.END)				
-	txtMvFrom.insert(tk.END, '0')			
 	txtMvTo['state'] = tk.NORMAL			# 
-	txtMvTo.delete(0, tk.END)				
-	txtMvTo.insert(tk.END, '1000')			
 	cbDacCh3['state'] = tk.NORMAL			# 
 	txtMvCenter['state'] = tk.NORMAL		# 
-	txtMvCenter.delete(0, tk.END)			
-	txtMvCenter.insert(tk.END, '1000')		
 	txtLevel['state'] = tk.NORMAL			# 
-	txtLevel.delete(0, tk.END)				
-	txtLevel.insert(tk.END, '10')			
 	txtFreq['state'] = tk.NORMAL			# 
-	txtFreq.delete(0, tk.END)				
-	txtFreq.insert(tk.END, '1000')			
-	txtRecive.delete('1.0',tk.END)			# 
+#	txtRecive.delete('1.0',tk.END)			# 
 	btnDitherOn['state'] = tk.NORMAL		#
 	btnDitherReflect['state'] = tk.DISABLED	#
 	btnDitherOff['state'] = tk.DISABLED		#
 
-	try:
-		com = 'COM' + cbDevCom.get()
-		baud = int(cbDevBaud.get())
-		print('connecting ...', com, baud)
-		ser = serial.Serial(com, baud, timeout = 0.5)
-		print('connecting succeeded.')
-
-	except:
-		print('connecting error.')
-		txtRecive.insert(tk.END,'Device Error')
-		btnOpen['state'] = tk.NORMAL			# Open
-		btnClose['state'] = tk.DISABLED			# Close
-		btnInit['state'] = tk.DISABLED			# Init
-		btnExit['state'] = tk.NORMAL			# Exit
-		cbDacCh['state'] = tk.DISABLED			# 
-		dacValue['state'] = tk.DISABLED			# 
-		btnDac['state'] = tk.DISABLED			# Dac
-		btnScale['state'] = tk.DISABLED			# 
-		btnScaleZero['state'] = tk.DISABLED		# 
-		btnAmeter['state'] = tk.DISABLED		# 
-		btnSequence['state'] = tk.DISABLED		#
-		cbDacMethod['state'] = tk.DISABLED		#
-		btnStop['state'] = tk.DISABLED			# Stop
-		cbDacCh2['state'] = tk.DISABLED			# 
-		txtMvStep['state'] = tk.DISABLED		# 
-		txtWaitMs['state'] = tk.DISABLED		
-		txtMvFrom['state'] = tk.DISABLED		# 
-		txtMvTo['state'] = tk.DISABLED			# 
-		cbDacCh3['state'] = tk.DISABLED			# 
-		txtMvCenter['state'] = tk.DISABLED		# 
-		txtLevel['state'] = tk.DISABLED			# 
-		txtFreq['state'] = tk.DISABLED			# 
-		btnDitherOn['state'] = tk.DISABLED		#
-		btnDitherReflect['state'] = tk.DISABLED	#
-		btnDitherOff['state'] = tk.DISABLED		#
-
 ########################################
 #
-def Close_clicked():
-	global ser
+def DisableWidget():
 	btnOpen['state'] = tk.NORMAL			# Open
 	btnClose['state'] = tk.DISABLED			# Close
-	btnInit['state'] = tk.NORMAL			# Init
+	btnFile['state'] = tk.DISABLED			#
+	btnInit['state'] = tk.DISABLED			# Init
 	btnExit['state'] = tk.NORMAL			# Exit
 	cbDacCh['state'] = tk.DISABLED			# 
 	dacValue['state'] = tk.DISABLED			# 
@@ -140,7 +91,74 @@ def Close_clicked():
 	btnDitherOn['state'] = tk.DISABLED		#
 	btnDitherReflect['state'] = tk.DISABLED	#
 	btnDitherOff['state'] = tk.DISABLED		#
-	ser.close()
+
+########################################
+#
+def Open_clicked():
+	global g_serial
+
+	EnableWidget()
+
+	try:
+		com = 'COM' + cbDevCom.get()
+		baud = int(cbDevBaud.get())
+		print('connecting ...', com, baud)
+		g_serial = serial.Serial(com, baud, timeout = 0.5)
+		print('connecting succeeded.')
+
+	except:
+		print('connecting error.')
+		txtRecive.insert(tk.END,'Device Error')
+		DisableWidget()
+
+########################################
+#
+def Close_clicked():
+	global g_serial
+
+	DisableWidget()
+	g_serial.close()
+
+########################################
+#
+def writeData(time, current, load):
+	global g_DataFileName
+
+	csvLineData	= []
+
+	csvLineData.append(time)
+	csvLineData.append(current)
+	csvLineData.append(load)
+	print(csvLineData)
+
+	try:
+		f = open(g_DataFileName, 'a', encoding='utf-8', newline='')
+		dataWriter = csv.writer(f)
+		dataWriter.writerow(csvLineData)
+		f.close()
+
+	except:
+		print('csv write error.')
+		txtRecive.insert(tk.END,'csv write error')
+
+########################################
+#
+def File_clicked():
+	global g_DataFileName
+
+	# current time
+	time = datetime.now()
+	timetext = time.strftime('%y%m%d%H%M%S')
+
+	fTyp = [("csv file", "*.csv")]
+	iniDir = os.path.abspath(os.path.dirname(__file__))
+	iniFile = 'data_' + timetext + '.csv'
+	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
+	g_DataFileName = file_name
+	if (g_DataFileName != ''):
+		timetext = time.strftime('%H:%M:%S.%f')
+		writeData('Time', 'Current', 'Load')
+		writeData(timetext, '0.1', '1.0')
 
 ########################################
 #	pre-process
@@ -185,7 +203,7 @@ def PreProcess():
 		#
 		DacCh = cbDacCh2.get()
 		dac_text = dac_command_text(DacCh, g_DacValue) + '\r\n'
-		ser.write(dac_text.encode('shift-jis'))
+		g_serial.write(dac_text.encode('shift-jis'))
 		print(dac_text)
 
 	# if dither selected
@@ -223,15 +241,15 @@ def PostProcess():
 	timetext = time.strftime('%Y/%m/%d %H:%M:%S')
 	print(timetext)
 
-	ser.write("scale\r\n".encode('shift-jis'))
+	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
-	ser.write("current\r\n".encode('shift-jis'))
+	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
@@ -284,7 +302,7 @@ idxFunc = 0
 def interval_work():
 	global g_loopFlg
 	global idxFunc
-	global ser
+	global g_serial
 	global g_DacValue
 
 	func = ItvFuncList[idxFunc]
@@ -305,10 +323,10 @@ def interval_work():
 #
 def Init_clicked():
 
-	ser.write('init\r\n'.encode('shift-jis'))
+	g_serial.write('init\r\n'.encode('shift-jis'))
 	print('init')
 	sleep(0.1)
-	txtRcv = ser.read(256)
+	txtRcv = g_serial.read(256)
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
@@ -321,7 +339,7 @@ def Exit_clicked():
 ########################################
 #
 def DAC_clicked():
-	global ser
+	global g_serial
 	global cbDacCh
 	global dacValue
 
@@ -330,40 +348,40 @@ def DAC_clicked():
 
 	text = dac_command_text(ch, value) + '\r\n'
 
-	ser.write(text.encode('shift-jis'))
+	g_serial.write(text.encode('shift-jis'))
 	print('dac ' + ch + ' ' + value)
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
 ########################################
 #
 def SCALE_clicked():
-	global ser
-	ser.write("scale\r\n".encode('shift-jis'))
+	global g_serial
+	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
 ########################################
 #
 def ZERO_clicked():
-	global ser
-	ser.write("scale zero\r\n".encode('shift-jis'))
+	global g_serial
+	g_serial.write("scale zero\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
 ########################################
 #
 def AMETER_clicked():
-	global ser
-	ser.write("current\r\n".encode('shift-jis'))
+	global g_serial
+	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	text = str(txtRcv)
 	text = text.replace('\r\n', '')
@@ -387,7 +405,7 @@ def Sequence_clicked():
 		g_loopFlg = 1 
 		interval_work()
 
-	# if dither selecter
+	# if dither selected
 	else:
 		pass
 
@@ -407,7 +425,7 @@ def dither_command_text(ch, mv, level, hz):
 ########################################
 #
 def DitherReflect_clicked():
-	global ser
+	global g_serial
 	global cbDacCh3
 	global txtMvCenter
 	global txtLevel
@@ -420,27 +438,26 @@ def DitherReflect_clicked():
 
 	text = dither_command_text(ch, mv, level, hz) + '\r\n'
 
-	ser.write(text.encode('shift-jis'))
+	g_serial.write(text.encode('shift-jis'))
 	print('dither ' + ch + ' ' + mv + ' ' + level + ' ' + hz)
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
 ########################################
 #
 def DitherOn_clicked():
-
-	global ser
+	global g_serial
 
 	DitherReflect_clicked()
 
 	text = 'idle start\r\n'
 
-	ser.write(text.encode('shift-jis'))
+	g_serial.write(text.encode('shift-jis'))
 	print('idle start')
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
@@ -451,12 +468,14 @@ def DitherOn_clicked():
 ########################################
 #
 def DitherOff_clicked():
+	global g_serial
+
 	text = 'idle stop\r\n'
 
-	ser.write(text.encode('shift-jis'))
+	g_serial.write(text.encode('shift-jis'))
 	print('idle stop')
 	sleep(0.1)
-	txtRcv = ser.readline()
+	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	print(txtRcv)
 
@@ -504,9 +523,14 @@ btnClose = tk.Button(master = root, text = 'Close', command = Close_clicked, sta
 btnClose.grid(row = row_idx, column = 1, pady = 3)
 
 ########################################
+# File
+btnFile = tk.Button(master = root, text = 'File', command = File_clicked, state = tk.NORMAL, width = 10)
+btnFile.grid(row = row_idx, column = 2, pady = 3)
+
+########################################
 # Init
 btnInit = tk.Button(master = root, text = 'Init', command = Init_clicked, state = tk.DISABLED, width = 10)
-btnInit.grid(row = row_idx, column = 2, pady = 3)
+btnInit.grid(row = row_idx, column = 3, pady = 3)
 
 ########################################
 # Exit
@@ -568,10 +592,11 @@ cbDacCh2.grid(row = row_idx, column = 1, sticky = tk.W)
 labelMvStep = tk.Label(root, text = 'mV Step : ')
 labelMvStep.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtMvStep = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtMvStep = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvStep.delete(0, tk.END)
 txtMvStep.insert(tk.END, '2')
 txtMvStep.grid(row = row_idx, column = 3, sticky = tk.W)
+txtMvStep['state'] = tk.DISABLED
 
 ########################################
 # Sequence
@@ -594,10 +619,11 @@ cbDacMethod.grid(row = row_idx, column = 1, sticky = tk.W)
 labelWaitMs = tk.Label(root, text = 'Wait ms : ')
 labelWaitMs.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtWaitMs = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtWaitMs = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtWaitMs.delete(0, tk.END)
 txtWaitMs.insert(tk.END, '5000')
 txtWaitMs.grid(row = row_idx, column = 3, sticky = tk.W)
+txtWaitMs['state'] = tk.DISABLED
 
 row_idx += 1 
 
@@ -606,20 +632,22 @@ row_idx += 1
 labelMvFrom = tk.Label(root, text = 'mV from : ')
 labelMvFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
-txtMvFrom = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtMvFrom = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvFrom.delete(0, tk.END)
 txtMvFrom.insert(tk.END, '0')
 txtMvFrom.grid(row = row_idx, column = 1, sticky = tk.W)
+txtMvFrom['state'] = tk.DISABLED
 
 ########################################
 #
 labelMvTo = tk.Label(root, text = 'mV to : ')
 labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtMvTo = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtMvTo = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvTo.delete(0, tk.END)
 txtMvTo.insert(tk.END, '1000')
 txtMvTo.grid(row = row_idx, column = 3, sticky = tk.W)
+txtMvTo['state'] = tk.DISABLED
 
 ########################################
 # Stop
@@ -642,14 +670,14 @@ cbDacCh3.grid(row = row_idx, column = 1, sticky = tk.W)
 labelMvCenter = tk.Label(root, text = 'mV (center) : ')
 labelMvCenter.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtMvCenter = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtMvCenter = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvCenter.delete(0, tk.END)
 txtMvCenter.insert(tk.END, '1000')
 txtMvCenter.grid(row = row_idx, column = 3, sticky = tk.W)
+txtMvCenter['state'] = tk.DISABLED
 
 ########################################
 #
-
 btnDitherOn = tk.Button(master = root, text = 'Dither On', command = DitherOn_clicked, state = tk.DISABLED, width = 10)
 btnDitherOn.grid(row = row_idx, column = 4, pady = 3)
 
@@ -660,20 +688,22 @@ row_idx += 1
 labelLevel = tk.Label(root, text = 'Level (%) : ')
 labelLevel.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
-txtLevel = ttk.Entry(root, width = 6, state = tk.DISABLED)
+txtLevel = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtLevel.delete(0, tk.END)
 txtLevel.insert(tk.END, '10')
 txtLevel.grid(row = row_idx, column = 1, sticky = tk.W)
+txtLevel['state'] = tk.DISABLED
 
 ########################################
 #
 labelFreq = tk.Label(root, text = 'Frequency (Hz) : ')
 labelFreq.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-txtFreq = ttk.Entry(root, width = 8, state = tk.DISABLED)
+txtFreq = ttk.Entry(root, width = 8, state = tk.NORMAL)
 txtFreq.delete(0, tk.END)
 txtFreq.insert(tk.END, '1000')
 txtFreq.grid(row = row_idx, column = 3, sticky = tk.W)
+txtFreq['state'] = tk.DISABLED
 
 ########################################
 #
