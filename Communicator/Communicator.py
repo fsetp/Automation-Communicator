@@ -156,9 +156,9 @@ def File_clicked():
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
 	if (g_DataFileName != ''):
-		timetext = time.strftime('%H:%M:%S.%f')
+#		timetext = time.strftime('%H:%M:%S.%f')
 		writeData('Time', 'Current', 'Load')
-		writeData(timetext, '0.1', '1.0')
+#		writeData(timetext, '0.1', '1.0')
 
 ########################################
 #	pre-process
@@ -243,15 +243,34 @@ def PostProcess():
 
 	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+	txtRcvScale = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
+	print(type(txtRcvScale))
+#	txtRcvScale.replace('\r', '')
+#	txtRcvScale.replace('\n', '')
+
+	scale = str(txtRcvScale, 'utf-8')
+#	scale.strip()
+	print(scale)
 
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+	txtRcvCurrent = g_serial.readline()
+	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
+	current = str(txtRcvCurrent, 'utf-8')
+	current.replace('\r', '')
+	current.replace('\n', '')
+	print(current)
+
+	# current time
+	time = datetime.now()
+	timetext = time.strftime('%H:%M:%S.%f')
+
+	print(type(scale))
+	print(type(current))
+
+	writeData(timetext, scale, current)
+
 
 	# rise up
 	if (g_DacDir):
@@ -499,7 +518,7 @@ labelCom = tk.Label(root, text = ' COM : ')
 labelCom.grid(row = row_idx, column = 0, sticky = tk.E)
 
 cbDevCom = ttk.Combobox(root, width = 2, values = ComChText)
-cbDevCom.current(4)
+cbDevCom.current(3)
 cbDevCom.grid(row = row_idx, column = 1)
 
 ########################################
