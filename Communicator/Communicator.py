@@ -152,7 +152,15 @@ def File_clicked():
 
 	fTyp = [("csv file", "*.csv")]
 	iniDir = os.path.abspath(os.path.dirname(__file__))
-	iniFile = 'data_' + timetext + '.csv'
+
+	# if normal selected
+	if (cbDacMethod.current() == 0):
+		iniFile = 'normal_' + timetext + '.csv'
+
+	# if dither selected
+	else:
+		iniFile = 'dither_' + timetext + '.csv'
+
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
 	if (g_DataFileName != ''):
