@@ -376,6 +376,7 @@ def interval_work():
 ########################################
 #
 def Init_clicked():
+	global g_serial
 
 	g_serial.write('init\r\n'.encode('shift-jis'))
 	print('init')
@@ -412,6 +413,7 @@ def DAC_clicked():
 #
 def SCALE_clicked():
 	global g_serial
+
 	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
@@ -422,11 +424,12 @@ def SCALE_clicked():
 #
 def ZERO_clicked():
 	global g_serial
+
 	g_serial.write("scale zero\r\n".encode('shift-jis'))
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+#	sleep(0.1)
+#	txtRcv = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
 
 ########################################
 #
@@ -450,6 +453,7 @@ def Sequence_clicked():
 	#
 	if (g_DataFileName == None or g_DataFileName ==""):
 		File_clicked()
+		
 
 		if (g_DataFileName ==""):
 			return
@@ -526,10 +530,10 @@ def DitherOn():
 	g_serial.write(text.encode('shift-jis'))
 	print('idle start')
 
-#	sleep(0.1)
-#	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
+	sleep(0.1)
+	txtRcv = g_serial.readline()
+	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+	print(txtRcv)
 
 ########################################
 #
@@ -551,10 +555,10 @@ def DitherOff():
 
 	g_serial.write(text.encode('shift-jis'))
 	print('idle stop')
-#	sleep(0.1)
-#	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
+	sleep(0.1)
+	txtRcv = g_serial.readline()
+	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+	print(txtRcv)
 
 ########################################
 #
@@ -705,7 +709,7 @@ labelWaitMs.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtWaitMs = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtWaitMs.delete(0, tk.END)
-txtWaitMs.insert(tk.END, '5000')
+txtWaitMs.insert(tk.END, '1000')
 txtWaitMs.grid(row = row_idx, column = 3, sticky = tk.W)
 txtWaitMs['state'] = tk.DISABLED
 
