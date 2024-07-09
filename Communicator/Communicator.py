@@ -156,9 +156,7 @@ def File_clicked():
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
 	if (g_DataFileName != ''):
-#		timetext = time.strftime('%H:%M:%S.%f')
 		writeData('Time', 'Current', 'Load')
-#		writeData(timetext, '0.1', '1.0')
 
 ########################################
 #	pre-process
@@ -171,6 +169,11 @@ g_WaitItvMs		= int(50)
 g_DacValue		= int(0)
 g_DacDir		= True;		# true:increase
 
+g_DitherCh		= 0
+g_DitherMv		= 3000
+g_DitherLevel	= 10
+g_DitherHz		= 1000
+
 ########################################
 #
 def InitProcess():
@@ -178,9 +181,29 @@ def InitProcess():
 	global g_WaitMs
 	global g_DacDir
 
-	g_DacDir	= True;
-	g_DacValue	= int(txtMvFrom.get())
-	g_WaitMs	= int(txtWaitMs.get())
+	global g_DitherCh
+	global g_DitherMv
+	global g_DitherLevel
+	global g_DitherHz
+	global cbDacCh3
+	global txtMvCenter
+	global txtLevel
+	global txtFreq
+
+	# if normal selected
+	if (cbDacMethod.current() == 0):
+
+		g_DacDir	= True;
+		g_DacValue	= int(txtMvFrom.get())
+		g_WaitMs	= int(txtWaitMs.get())
+
+	# if dither selected
+	else:
+		g_DitherCh		= cbDacCh3.get()
+		g_DitherMv		= txtMvCenter.get()
+		g_DitherLevel	= txtLevel.get()
+		g_DitherHz		= txtFreq.get()
+		g_WaitMs	= int(txtWaitMs.get())
 
 ########################################
 #
@@ -208,7 +231,7 @@ def PreProcess():
 
 	# if dither selected
 	else:
-		pass
+		DitherReflect(g_DitherCh, g_DitherMv, g_DitherLevel, g_DitherHz)
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
@@ -241,36 +264,31 @@ def PostProcess():
 	timetext = time.strftime('%Y/%m/%d %H:%M:%S')
 	print(timetext)
 
-	g_serial.write("scale\r\n".encode('shift-jis'))
-	sleep(0.1)
-	txtRcvScale = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
-	print(type(txtRcvScale))
-#	txtRcvScale.replace('\r', '')
-#	txtRcvScale.replace('\n', '')
-
-	scale = str(txtRcvScale, 'utf-8')
-#	scale.strip()
-	print(scale)
-
+	# current value
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcvCurrent = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
-	current = str(txtRcvCurrent, 'utf-8')
-	current.replace('\r', '')
-	current.replace('\n', '')
-	print(current)
+
+	current = txtRcvCurrent[:-2]
+	current = str(current, 'utf-8')
+	print(current + ' mV')
+
+	# scale value (load)
+	g_serial.write("scale\r\n".encode('shift-jis'))
+	sleep(0.1)
+	txtRcvScale = g_serial.readline()
+	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
+	scale = txtRcvScale[:-2]
+	scale = str(scale, 'utf-8')
+	print(scale + ' g')
 
 	# current time
 	time = datetime.now()
 	timetext = time.strftime('%H:%M:%S.%f')
 
-	print(type(scale))
-	print(type(current))
-
-	writeData(timetext, scale, current)
-
+	# save to csv
+	writeData(timetext, current, scale)
 
 	# rise up
 	if (g_DacDir):
@@ -278,7 +296,7 @@ def PostProcess():
 		nTo = int(txtMvTo.get())
 		if (g_DacValue < nTo):
 			g_DacValue += int(txtMvStep.get())
-			print('dac : ' + str(g_DacValue))
+			print('dac : ' + str(g_DacValue) + ' mV')
 
 			# arrive at top
 			if (g_DacValue == nTo):
@@ -296,18 +314,17 @@ def PostProcess():
 		nFrom = int(txtMvFrom.get())
 		if (g_DacValue > nFrom):
 			g_DacValue -= int(txtMvStep.get())
-			print('dac : ' + str(g_DacValue))
+			print('dac : ' + str(g_DacValue) + ' mV')
 
 		# reach at 'From' value
 		else:
 
-			# if normal selecter
-			if (cbDacMethod.current() == 1):
-				g_loopFlg = 0
+			g_loopFlg = 0
 
-			# if dither selected
-			else:
-				pass
+	# if dither selected
+	if (cbDacMethod.current() == 1):
+		g_DitherMv = g_DacValue
+		print('dither selected')
 
 	return True
 
@@ -413,6 +430,13 @@ def AMETER_clicked():
 def Sequence_clicked():
 	global g_loopFlg
 
+	#
+	if (g_DataFileName == None or g_DataFileName ==""):
+		File_clicked()
+
+		if (g_DataFileName ==""):
+			return
+
 	btnSequence['state'] = tk.DISABLED
 	btnStop['state'] = tk.NORMAL
 	txtRecive.delete('1.0',tk.END)
@@ -420,13 +444,15 @@ def Sequence_clicked():
 	InitProcess()
 
 	# if normal selected
-	if (cbDacMethod.current() == 0):
-		g_loopFlg = 1 
-		interval_work()
+#	if (cbDacMethod.current() == 0):
+	g_loopFlg = 1 
+	interval_work()
 
 	# if dither selected
-	else:
-		pass
+#	else:
+#		DitherReflect_clicked()
+#		g_loopFlg = 1 
+#		interval_work()
 
 ########################################
 #
@@ -443,6 +469,18 @@ def dither_command_text(ch, mv, level, hz):
 
 ########################################
 #
+def DitherReflect(ch, mv, level, hz):
+	text = dither_command_text(ch, mv, level, hz) + '\r\n'
+
+	g_serial.write(text.encode('shift-jis'))
+	print('dither ' + ch + ' ' + mv + ' ' + level + ' ' + hz)
+#	sleep(0.1)
+#	txtRcv = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
+
+########################################
+#
 def DitherReflect_clicked():
 	global g_serial
 	global cbDacCh3
@@ -455,14 +493,7 @@ def DitherReflect_clicked():
 	level	= txtLevel.get()
 	hz		= txtFreq.get()
 
-	text = dither_command_text(ch, mv, level, hz) + '\r\n'
-
-	g_serial.write(text.encode('shift-jis'))
-	print('dither ' + ch + ' ' + mv + ' ' + level + ' ' + hz)
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+	DitherReflect(ch, mv, level, hz)
 
 ########################################
 #
@@ -518,7 +549,7 @@ labelCom = tk.Label(root, text = ' COM : ')
 labelCom.grid(row = row_idx, column = 0, sticky = tk.E)
 
 cbDevCom = ttk.Combobox(root, width = 2, values = ComChText)
-cbDevCom.current(3)
+cbDevCom.current(4)
 cbDevCom.grid(row = row_idx, column = 1)
 
 ########################################
@@ -570,10 +601,11 @@ cbDacCh.grid(row = row_idx, column = 1, sticky = tk.W)
 label_dac = tk.Label(root, text = 'DAC(mV) : ')
 label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-dacValue = ttk.Entry(root, width = 6, state = tk.DISABLED)
+dacValue = ttk.Entry(root, width = 6, state = tk.NORMAL)
 dacValue.delete(0, tk.END)
 dacValue.insert(tk.END, '3000')
 dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
+dacValue['state'] = tk.DISABLED
 
 btnDac = tk.Button(master = root, text = 'DAC', command = DAC_clicked, state = tk.DISABLED, width = 10)
 btnDac.grid(row = row_idx, column = 4, pady = 3)
