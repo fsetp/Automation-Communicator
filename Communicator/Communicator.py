@@ -176,6 +176,13 @@ g_DitherHz		= 1000
 
 ########################################
 #
+def SetDacValue(ch, value):
+	dac_text = dac_command_text(ch, value) + '\r\n'
+	g_serial.write(dac_text.encode('shift-jis'))
+	print(dac_text)
+
+########################################
+#
 def InitProcess():
 	global g_DacValue
 	global g_WaitMs
@@ -203,7 +210,9 @@ def InitProcess():
 		g_DitherMv		= txtMvCenter.get()
 		g_DitherLevel	= txtLevel.get()
 		g_DitherHz		= txtFreq.get()
-		g_WaitMs	= int(txtWaitMs.get())
+		g_WaitMs		= int(txtWaitMs.get())
+		DitherReflect(g_DitherCh, g_DitherMv, g_DitherLevel, g_DitherHz)
+		DitherOn()
 
 ########################################
 #
@@ -222,12 +231,10 @@ def PreProcess():
 	# if normal selected
 	if (cbDacMethod.current() == 0):
 
-		# set current
+		# set value
 		#
 		DacCh = cbDacCh2.get()
-		dac_text = dac_command_text(DacCh, g_DacValue) + '\r\n'
-		g_serial.write(dac_text.encode('shift-jis'))
-		print(dac_text)
+		SetDacValue(DacCh, g_DacValue)
 
 	# if dither selected
 	else:
@@ -319,7 +326,18 @@ def PostProcess():
 		# reach at 'From' value
 		else:
 
-			g_loopFlg = 0
+			# loop end, clear file mame
+			g_loopFlg		= 0
+			g_DataFileName	= None
+
+			# if normal selected
+			if (cbDacMethod.current() == 0):
+				DacCh = cbDacCh2.get()
+				SetDacValue(DacCh, 0)
+
+			# if dither selected
+			else:
+				DitherOff()
 
 	# if dither selected
 	if (cbDacMethod.current() == 1):
@@ -382,9 +400,8 @@ def DAC_clicked():
 	ch		= cbDacCh.get()
 	value	= dacValue.get()
 
-	text = dac_command_text(ch, value) + '\r\n'
+	SetDacValue(ch, value)
 
-	g_serial.write(text.encode('shift-jis'))
 	print('dac ' + ch + ' ' + value)
 	sleep(0.1)
 	txtRcv = g_serial.readline()
@@ -458,7 +475,9 @@ def Sequence_clicked():
 #
 def Stop_clicked():
 	global g_loopFlg
+
 	g_loopFlg = 0
+	g_DataFileName = None
 	btnSequence['state'] = tk.NORMAL
 	btnStop['state'] = tk.DISABLED
 
@@ -497,7 +516,7 @@ def DitherReflect_clicked():
 
 ########################################
 #
-def DitherOn_clicked():
+def DitherOn():
 	global g_serial
 
 	DitherReflect_clicked()
@@ -506,10 +525,17 @@ def DitherOn_clicked():
 
 	g_serial.write(text.encode('shift-jis'))
 	print('idle start')
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+
+#	sleep(0.1)
+#	txtRcv = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
+
+########################################
+#
+def DitherOn_clicked():
+
+	DitherOn()
 
 	btnDitherOn['state'] = tk.DISABLED		#
 	btnDitherReflect['state'] = tk.NORMAL	#
@@ -517,17 +543,24 @@ def DitherOn_clicked():
 
 ########################################
 #
-def DitherOff_clicked():
+def DitherOff():
+
 	global g_serial
 
 	text = 'idle stop\r\n'
 
 	g_serial.write(text.encode('shift-jis'))
 	print('idle stop')
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+#	sleep(0.1)
+#	txtRcv = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
+
+########################################
+#
+def DitherOff_clicked():
+
+	DitherOff()
 
 	btnDitherOn['state'] = tk.NORMAL		#
 	btnDitherReflect['state'] = tk.DISABLED	#
@@ -685,7 +718,7 @@ labelMvFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
 txtMvFrom = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvFrom.delete(0, tk.END)
-txtMvFrom.insert(tk.END, '0')
+txtMvFrom.insert(tk.END, '100')
 txtMvFrom.grid(row = row_idx, column = 1, sticky = tk.W)
 txtMvFrom['state'] = tk.DISABLED
 
@@ -696,7 +729,7 @@ labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtMvTo = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvTo.delete(0, tk.END)
-txtMvTo.insert(tk.END, '1000')
+txtMvTo.insert(tk.END, '300')
 txtMvTo.grid(row = row_idx, column = 3, sticky = tk.W)
 txtMvTo['state'] = tk.DISABLED
 
@@ -723,7 +756,7 @@ labelMvCenter.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtMvCenter = ttk.Entry(root, width = 6, state = tk.NORMAL)
 txtMvCenter.delete(0, tk.END)
-txtMvCenter.insert(tk.END, '1000')
+txtMvCenter.insert(tk.END, '200')
 txtMvCenter.grid(row = row_idx, column = 3, sticky = tk.W)
 txtMvCenter['state'] = tk.DISABLED
 
@@ -752,7 +785,7 @@ labelFreq.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 txtFreq = ttk.Entry(root, width = 8, state = tk.NORMAL)
 txtFreq.delete(0, tk.END)
-txtFreq.insert(tk.END, '1000')
+txtFreq.insert(tk.END, '200')
 txtFreq.grid(row = row_idx, column = 3, sticky = tk.W)
 txtFreq['state'] = tk.DISABLED
 
