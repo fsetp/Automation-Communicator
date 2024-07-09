@@ -108,7 +108,7 @@ def Open_clicked():
 
 	except:
 		print('connecting error.')
-		txtRecive.insert(tk.END,'Device Error')
+		txtRecive.insert(tk.END,'Device Error\r\n')
 		DisableWidget()
 
 ########################################
@@ -179,8 +179,12 @@ g_DitherHz		= 1000
 def SetDacValue(ch, value):
 	dac_text = dac_command_text(ch, value) + '\r\n'
 	g_serial.write(dac_text.encode('shift-jis'))
-	print(dac_text)
+	text = dac_text[:-2]
+	print(text)
 
+
+g_nTimes = 0
+g_nTime  = 0
 ########################################
 #
 def InitProcess():
@@ -196,6 +200,9 @@ def InitProcess():
 	global txtMvCenter
 	global txtLevel
 	global txtFreq
+
+	global g_nTimes
+	global g_nTime
 
 	# if normal selected
 	if (cbDacMethod.current() == 0):
@@ -214,12 +221,30 @@ def InitProcess():
 		DitherReflect(g_DitherCh, g_DitherMv, g_DitherLevel, g_DitherHz)
 		DitherOn()
 
+	#
+	nFrom  = int(txtMvFrom.get())
+	nTo    = int(txtMvTo.get())
+	nStep  = int(txtMvStep.get())
+	nTimes = (nTo - nFrom) / nStep
+	nTotalWaitMs = nTimes * g_WaitMs
+	text = 'Times : ' + str(nTimes) + '\r\n'
+	txtRecive.insert(tk.END,text.encode('ascii'))
+	text = 'Total Sec : ' + str(nTotalWaitMs / 1000) + '\r\n'
+	txtRecive.insert(tk.END,text.encode('ascii'))
+
+	g_nTimes = nTimes
+	g_nTime  = 0
+
+
 ########################################
 #
 def PreProcess():
 	global g_IntervalMs
 	global g_WaitItvMs
 	global g_DacValue
+
+	global g_nTimes
+	global g_nTime
 
 	print('Pre Process')
 
@@ -242,6 +267,13 @@ def PreProcess():
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
+
+	#
+	text = str(g_nTime) + ' / ' + str(g_nTimes) + '\r\n'
+	txtRecive.insert(tk.END,text.encode('ascii'))
+	text = text[:-2]
+	print(text)
+	g_nTime += 1
 
 	return True
 
@@ -381,9 +413,18 @@ def Init_clicked():
 	g_serial.write('init\r\n'.encode('shift-jis'))
 	print('init')
 	sleep(0.1)
-	txtRcv = g_serial.read(256)
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+#	txtRcv = g_serial.read(256)
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
+#	for i in range(3):
+	while True:
+		txtRcv = g_serial.readline()
+		if (txtRcv == b''):
+			break
+		txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+		reply = txtRcv[:-2]
+		reply = str(reply, 'utf-8')
+		print(reply)
 
 ########################################
 #
@@ -404,10 +445,10 @@ def DAC_clicked():
 	SetDacValue(ch, value)
 
 	print('dac ' + ch + ' ' + value)
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+#	sleep(0.1)
+#	txtRcv = g_serial.readline()
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	print(txtRcv)
 
 ########################################
 #
@@ -533,7 +574,10 @@ def DitherOn():
 	sleep(0.1)
 	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+
+	reply = txtRcv[:-2]
+	reply = str(reply, 'utf-8')
+	print(reply)
 
 ########################################
 #
@@ -558,7 +602,10 @@ def DitherOff():
 	sleep(0.1)
 	txtRcv = g_serial.readline()
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+
+	reply = txtRcv[:-2]
+	reply = str(reply, 'utf-8')
+	print(reply)
 
 ########################################
 #
@@ -640,7 +687,7 @@ label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
 dacValue = ttk.Entry(root, width = 6, state = tk.NORMAL)
 dacValue.delete(0, tk.END)
-dacValue.insert(tk.END, '3000')
+dacValue.insert(tk.END, '1000')
 dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
 dacValue['state'] = tk.DISABLED
 
