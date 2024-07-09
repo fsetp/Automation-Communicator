@@ -163,6 +163,7 @@ def File_clicked():
 
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
+
 	if (g_DataFileName != ''):
 		writeData('Time', 'Current', 'Load')
 
@@ -303,6 +304,7 @@ def PostProcess():
 	global g_DacValue
 	global g_DacDir
 	global g_loopFlg
+	global g_DataFileName
 
 	print('Post Process')
 
@@ -498,11 +500,14 @@ def AMETER_clicked():
 #
 def Sequence_clicked():
 	global g_loopFlg
+	global g_DataFileName
+
+	print(type(g_DataFileName))
+	print(g_DataFileName)
 
 	#
 	if (g_DataFileName == None or g_DataFileName ==""):
 		File_clicked()
-		
 
 		if (g_DataFileName ==""):
 			return
@@ -528,6 +533,7 @@ def Sequence_clicked():
 #
 def Stop_clicked():
 	global g_loopFlg
+	global g_DataFileName
 
 	g_loopFlg = 0
 	g_DataFileName = None
