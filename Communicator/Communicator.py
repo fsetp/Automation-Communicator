@@ -31,6 +31,33 @@ METHOD_NONE		= 0
 METHOD_NORMAL	= 1
 METHOD_DITHER	= 2
 
+btnOpen = None
+btnClose = None
+btnFile = None
+btnInit = None
+btnExit = None
+cbDacCh = None
+dacValue = None
+btnDac = None
+btnScale = None
+btnScaleZero = None
+btnAmeter = None
+btnSequence = None
+cbDacMethod = None
+btnStop = None
+txtMvStep = None
+txtWaitMs = None
+txtMvFrom = None
+txtMvTo = None
+txtMvCenter = None
+txtLevel = None
+txtFreq = None
+btnDitherOn = None
+btnDitherReflect = None
+btnDitherOff = None
+txtRecive = None
+
+
 ########################################
 #
 def dac_command_text(ch, value):
@@ -39,6 +66,33 @@ def dac_command_text(ch, value):
 ########################################
 #
 def EnableWidget():
+	global btnOpen
+	global btnClose
+	global btnFile
+	global btnInit
+	global btnExit
+	global cbDacCh
+	global dacValue
+	global btnDac
+	global btnScale
+	global btnScaleZero
+	global btnAmeter
+	global btnSequence
+	global cbDacMethod
+	global btnStop
+	global txtMvStep
+	global txtWaitMs
+	global txtMvFrom
+	global txtMvTo
+	global txtMvCenter
+	global txtLevel
+	global txtFreq
+	global btnDitherOn
+	global btnDitherReflect
+	global btnDitherOff
+	global txtRecive
+
+
 	btnOpen['state'] = tk.DISABLED			# Open
 	btnClose['state'] = tk.NORMAL			# Close
 	btnFile['state'] = tk.NORMAL			#
@@ -68,6 +122,31 @@ def EnableWidget():
 ########################################
 #
 def DisableWidget():
+	global btnOpen
+	global btnClose
+	global btnFile
+	global btnInit
+	global btnExit
+	global cbDacCh
+	global dacValue
+	global btnDac
+	global btnScale
+	global btnScaleZero
+	global btnAmeter
+	global btnSequence
+	global cbDacMethod
+	global btnStop
+	global txtMvStep
+	global txtWaitMs
+	global txtMvFrom
+	global txtMvTo
+	global txtMvCenter
+	global txtLevel
+	global txtFreq
+	global btnDitherOn
+	global btnDitherReflect
+	global btnDitherOff
+
 	btnOpen['state'] = tk.NORMAL			# Open
 	btnClose['state'] = tk.DISABLED			# Close
 	btnFile['state'] = tk.DISABLED			#
@@ -97,7 +176,9 @@ def DisableWidget():
 #
 def Open_clicked():
 	global g_serial
-
+	global cbDevCom
+	global txtRecive
+	
 	EnableWidget()
 
 	try:
@@ -124,7 +205,8 @@ def Close_clicked():
 #
 def writeData(time, current, load):
 	global g_DataFileName
-
+	global txtRecive
+	
 	csvLineData	= []
 
 	csvLineData.append(time)
@@ -210,7 +292,8 @@ def InitProcess():
 	global txtMvCenter
 	global txtLevel
 	global txtFreq
-
+	global txtRecive
+	
 	global g_nTimes
 	global g_nTime
 
@@ -253,7 +336,8 @@ def PreProcess():
 	global g_WaitItvMs
 	global g_DacValue
 	global cbDacCh
-
+	global txtRecive
+	
 	global g_nTimes
 	global g_nTime
 
@@ -308,7 +392,8 @@ def PostProcess():
 	global g_loopFlg
 	global g_DataFileName
 	global cbDacCh
-
+	global txtRecive
+	
 	print('Post Process')
 
 	# current time
@@ -423,6 +508,7 @@ def interval_work():
 #
 def Init_clicked():
 	global g_serial
+	global txtRecive
 
 	g_serial.write('init\r\n'.encode('shift-jis'))
 	print('init')
@@ -469,7 +555,8 @@ def DAC_clicked():
 #
 def SCALE_clicked():
 	global g_serial
-
+	global txtRecive
+	
 	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
@@ -491,7 +578,8 @@ def ZERO_clicked():
 #
 def AMETER_clicked():
 	global g_serial
-
+	global txtRecive
+	
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
@@ -565,7 +653,8 @@ def select_combo(event):
 def Sequence_clicked():
 	global g_loopFlg
 	global g_DataFileName
-
+	global txtRecive
+	
 	print(type(g_DataFileName))
 	print(g_DataFileName)
 
@@ -641,7 +730,8 @@ def DitherReflect_clicked():
 #
 def DitherOn():
 	global g_serial
-
+	global txtRecive
+	
 	DitherReflect_clicked()
 
 	text = 'idle start\r\n'
@@ -672,6 +762,7 @@ def DitherOn_clicked():
 def DitherOff():
 
 	global g_serial
+	global txtRecive
 
 	text = 'idle stop\r\n'
 
@@ -703,7 +794,32 @@ g_root = None
 #
 def main():
 	global g_root
-
+	global btnOpen
+	global btnClose
+	global btnFile
+	global btnInit
+	global btnExit
+	global cbDacCh
+	global dacValue
+	global btnDac
+	global btnScale
+	global btnScaleZero
+	global btnAmeter
+	global btnSequence
+	global cbDacMethod
+	global btnStop
+	global txtMvStep
+	global txtWaitMs
+	global txtMvFrom
+	global txtMvTo
+	global txtMvCenter
+	global txtLevel
+	global txtFreq
+	global btnDitherOn
+	global btnDitherReflect
+	global btnDitherOff
+	global txtRecive
+	
 	g_root = tk.Tk()
 	g_root.geometry('432x440')
 	g_root.title('Communicator Tool for Atom Shell')
