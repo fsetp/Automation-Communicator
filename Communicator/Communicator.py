@@ -31,34 +31,35 @@ METHOD_NONE		= 0
 METHOD_NORMAL	= 1
 METHOD_DITHER	= 2
 
-cbDevCom = None
-cbDevBaud = None
-btnOpen = None
-btnClose = None
-btnFile = None
-btnInit = None
-btnExit = None
-cbDacCh = None
-dacValue = None
-btnDac = None
-btnScale = None
-btnScaleZero = None
-btnAmeter = None
-btnSequence = None
-cbDacMethod = None
-btnStop = None
-txtMvStep = None
-txtWaitMs = None
-txtMvFrom = None
-txtMvTo = None
-txtMvCenter = None
-txtLevel = None
-txtFreq = None
-btnDitherOn = None
-btnDitherReflect = None
-btnDitherOff = None
-txtRecive = None
-
+########################################
+# widget globals
+cbDevCom			= None
+cbDevBaud			= None
+btnOpen				= None
+btnClose			= None
+btnFile				= None
+btnInit				= None
+btnExit				= None
+cbDacCh				= None
+dacValue			= None
+btnDac				= None
+btnScale			= None
+btnScaleZero		= None
+btnAmeter			= None
+btnSequence			= None
+cbDacMethod			= None
+btnStop				= None
+txtMvStep			= None
+txtWaitMs			= None
+txtMvFrom			= None
+txtMvTo				= None
+txtMvCenter			= None
+txtLevel			= None
+txtFreq				= None
+btnDitherOn			= None
+btnDitherReflect	= None
+btnDitherOff		= None
+txtRecive			= None
 
 ########################################
 #
@@ -186,8 +187,6 @@ def Open_clicked():
 	try:
 		com = 'COM' + cbDevCom.get()
 		baud = int(cbDevBaud.get())
-#		com = 'COM4'
-#		baud = 115200
 
 		print('connecting ...', com, baud)
 		g_serial = serial.Serial(com, baud, timeout = 0.5)
@@ -250,9 +249,11 @@ def File_clicked():
 	else:
 		iniFile = 'dither_' + timetext + '.csv'
 
+	#
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
 
+	# csv header text
 	if (g_DataFileName != ''):
 		writeData('Time', 'Current', 'Load')
 
@@ -272,6 +273,9 @@ g_DitherMv		= 3000
 g_DitherLevel	= 10
 g_DitherHz		= 1000
 
+g_nTimes = 0
+g_nTime  = 0
+
 ########################################
 #
 def SetDacValue(ch, value):
@@ -282,9 +286,6 @@ def SetDacValue(ch, value):
 	text = dac_text[:-2]
 	print(text)
 
-
-g_nTimes = 0
-g_nTime  = 0
 ########################################
 #
 def InitProcess():
@@ -331,13 +332,16 @@ def InitProcess():
 	nFrom  = int(txtMvFrom.get())
 	nTo    = int(txtMvTo.get())
 	nStep  = int(txtMvStep.get())
-	nTimes = (nTo - nFrom) / nStep
+
+	#
+	nTimes = (nTo - nFrom) / nStep * 2	# rising and falling
 	nTotalWaitMs = nTimes * g_WaitMs
 	text = 'Times : ' + str(nTimes) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
 	text = 'Total Sec : ' + str(nTotalWaitMs / 1000) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
 
+	#
 	g_nTimes = nTimes
 	g_nTime  = 0
 
@@ -539,10 +543,6 @@ def Init_clicked():
 	g_serial.write('init\r\n'.encode('shift-jis'))
 	print('init')
 	sleep(0.1)
-#	txtRcv = g_serial.read(256)
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
-#	for i in range(3):
 	while True:
 		txtRcv = g_serial.readline()
 		if (txtRcv == b''):
@@ -562,7 +562,6 @@ def Exit_clicked():
 ########################################
 #
 def DAC_clicked():
-#	global g_serial
 	global cbDacCh
 	global dacValue
 
@@ -572,10 +571,6 @@ def DAC_clicked():
 	SetDacValue(ch, value)
 
 	print('dac ' + ch + ' ' + value)
-#	sleep(0.1)
-#	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
 
 ########################################
 #
@@ -595,10 +590,6 @@ def ZERO_clicked():
 	global g_serial
 
 	g_serial.write("scale zero\r\n".encode('shift-jis'))
-#	sleep(0.1)
-#	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
 
 ########################################
 #
@@ -612,10 +603,7 @@ def AMETER_clicked():
 	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 	text = str(txtRcv)
 	text = text.replace('\r\n', '')
-#	text = text.replace('\n', '')
-#	value = float(text)
 	print(text)
-
 
 ########################################
 #
@@ -699,16 +687,8 @@ def Sequence_clicked():
 
 	InitProcess()
 
-	# if normal selected
-#	if (cbDacMethod.current() == METHOD_NORMAL):
 	g_loopFlg = 1 
 	interval_work()
-
-	# if dither selected
-#	else:
-#		DitherReflect_clicked()
-#		g_loopFlg = 1 
-#		interval_work()
 
 ########################################
 #
@@ -737,10 +717,6 @@ def DitherReflect(ch, mv, level, hz):
 
 	g_serial.write(text.encode('shift-jis'))
 	print('dither ' + ch + ' ' + mv + ' ' + level + ' ' + hz)
-#	sleep(0.1)
-#	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-#	print(txtRcv)
 
 ########################################
 #
@@ -785,7 +761,6 @@ def DitherOn_clicked():
 	global btnDitherOn
 	global btnDitherReflect
 	global btnDitherOff
-
 
 	DitherOn()
 
@@ -860,7 +835,9 @@ def main():
 	global btnDitherReflect
 	global btnDitherOff
 	global txtRecive
-	
+
+	########################################
+	#
 	g_root = tk.Tk()
 	g_root.geometry('432x440')
 	g_root.title('Communicator Tool for Atom Shell')
@@ -936,7 +913,7 @@ def main():
 	btnAmeter.grid(row = row_idx, column = 2, padx = 2, pady = 3)
 
 	########################################
-	#
+	# Dac Method
 	labelMethod = tk.Label(g_root, text = 'Method : ')
 	labelMethod.grid(row = row_idx, column = 3, sticky = tk.E, pady = 3)
 
@@ -1032,7 +1009,7 @@ def main():
 	txtFreq['state'] = tk.DISABLED
 
 	########################################
-	#
+	# Dither Off
 	btnDitherOff = tk.Button(master = g_root, text = 'Dither Off', command = DitherOff_clicked, state = tk.DISABLED, width = 10)
 	btnDitherOff.grid(row = row_idx, column = 4, pady = 3)
 
@@ -1074,7 +1051,7 @@ def main():
 	row_idx += 1 
 
 	########################################
-	#
+	# from mV
 	labelMvFrom = tk.Label(g_root, text = 'mV from : ')
 	labelMvFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
 
@@ -1085,7 +1062,7 @@ def main():
 	txtMvFrom['state'] = tk.DISABLED
 
 	########################################
-	#
+	# to mV
 	labelMvTo = tk.Label(g_root, text = 'mV to : ')
 	labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
@@ -1108,7 +1085,10 @@ def main():
 	txtRecive = tkinter.scrolledtext.ScrolledText(g_root , width = 56, height = 10)
 	txtRecive.grid(row = row_idx , column = 0, columnspan = 5 ,padx = 10,pady = 10)
 
+	########################################
+	#
 	g_root.mainloop()
 
+################################################################################
 if __name__ == "__main__":
 	main()
