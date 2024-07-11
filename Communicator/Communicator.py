@@ -106,7 +106,7 @@ def EnableWidget():
 	btnScale['state'] = tk.NORMAL			# 
 	btnScaleZero['state'] = tk.NORMAL		# 
 	btnAmeter['state'] = tk.NORMAL			# 
-	btnSequence['state'] = tk.NORMAL		#
+	btnSequence['state'] = tk.DISABLED		#
 	cbDacMethod['state'] = tk.NORMAL		#
 	btnStop['state'] = tk.DISABLED			# Stop
 	txtMvStep['state'] = tk.DISABLED		# 
@@ -313,20 +313,20 @@ def InitProcess():
 
 	print('Init\r\n')
 
+	g_DacDir	= True;
+	g_DacValue	= int(txtMvFrom.get())
+	g_WaitMs	= int(txtWaitMs.get())
+
 	# if normal selected
 	if (cbDacMethod.current() == METHOD_NORMAL):
-
-		g_DacDir	= True;
-		g_DacValue	= int(txtMvFrom.get())
-		g_WaitMs	= int(txtWaitMs.get())
+		pass
 
 	# if dither selected
 	elif (cbDacMethod.current() == METHOD_DITHER):
 		g_DitherCh		= int(cbDacCh.get())
-		g_DacValue		= int(txtMvFrom.get())
 		g_DitherLevel	= int(txtLevel.get())
 		g_DitherHz		= int(txtFreq.get())
-		g_WaitMs		= int(txtWaitMs.get())
+
 		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
 		DitherOn()
 
