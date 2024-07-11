@@ -854,7 +854,7 @@ def main():
 	labelCom = tk.Label(g_root, text = ' COM : ')
 	labelCom.grid(row = row_idx, column = 0, padx = 2, pady = 3)#, sticky = tk.E)
 
-	cbDevCom = ttk.Combobox(g_root, width = 2, values = ComChText)
+	cbDevCom = ttk.Combobox(g_root, width = 2, values = ComChText, state = 'readonly')
 	cbDevCom.current(4)
 	cbDevCom.grid(row = row_idx, column = 1, padx = 2, pady = 3)
 
@@ -863,7 +863,7 @@ def main():
 	labelBaud = tk.Label(g_root, text = ' Baud : ')
 	labelBaud.grid(row = row_idx, column = 2, padx = 2, pady = 3)#, sticky = tk.E)
 
-	cbDevBaud = ttk.Combobox(g_root, width = 8, values = BaudText)
+	cbDevBaud = ttk.Combobox(g_root, width = 8, values = BaudText, state = 'readonly')
 	cbDevBaud.current(1)
 	cbDevBaud.grid(row = row_idx, column = 3, padx = 2, pady = 3 )
 
