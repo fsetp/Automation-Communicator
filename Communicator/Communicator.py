@@ -269,7 +269,7 @@ g_DacValue		= int(0)
 g_DacDir		= True;		# true:increase
 
 g_DitherCh		= 0
-g_DitherMv		= 3000
+#g_DitherMv		= 3000
 g_DitherLevel	= 10
 g_DitherHz		= 1000
 
@@ -294,7 +294,7 @@ def InitProcess():
 	global g_DacDir
 
 	global g_DitherCh
-	global g_DitherMv
+#	global g_DitherMv
 	global g_DitherLevel
 	global g_DitherHz
 	global cbDacCh
@@ -311,6 +311,8 @@ def InitProcess():
 	global g_nTimes
 	global g_nTime
 
+	print('Init\r\n')
+
 	# if normal selected
 	if (cbDacMethod.current() == METHOD_NORMAL):
 
@@ -319,13 +321,13 @@ def InitProcess():
 		g_WaitMs	= int(txtWaitMs.get())
 
 	# if dither selected
-	else:
-		g_DitherCh		= cbDacCh.get()
-		g_DitherMv		= txtMvCenter.get()
-		g_DitherLevel	= txtLevel.get()
-		g_DitherHz		= txtFreq.get()
+	elif (cbDacMethod.current() == METHOD_DITHER):
+		g_DitherCh		= int(cbDacCh.get())
+		g_DacValue		= int(txtMvFrom.get())
+		g_DitherLevel	= int(txtLevel.get())
+		g_DitherHz		= int(txtFreq.get())
 		g_WaitMs		= int(txtWaitMs.get())
-		DitherReflect(g_DitherCh, g_DitherMv, g_DitherLevel, g_DitherHz)
+		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
 		DitherOn()
 
 	#
@@ -358,7 +360,7 @@ def PreProcess():
 	global g_nTimes
 	global g_nTime
 	global g_DitherCh
-	global g_DitherMv
+#	global g_DitherMv
 	global g_DitherLevel
 	global g_DitherHz
 
@@ -378,8 +380,9 @@ def PreProcess():
 		SetDacValue(DacCh, g_DacValue)
 
 	# if dither selected
-	else:
-		DitherReflect(g_DitherCh, g_DitherMv, g_DitherLevel, g_DitherHz)
+	elif (cbDacMethod.current() == METHOD_DITHER):
+
+		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
@@ -413,7 +416,7 @@ def PostProcess():
 	global g_DacDir
 	global g_loopFlg
 	global g_DataFileName
-	global g_DitherMv
+#	global g_DitherMv
 	global cbDacCh
 	global cbDacMethod
 	global txtMvFrom
@@ -493,13 +496,13 @@ def PostProcess():
 				SetDacValue(DacCh, 0)
 
 			# if dither selected
-			else:
+			elif (cbDacMethod.current() == METHOD_DITHER):
 				DitherOff()
 
 	# if dither selected
-	if (cbDacMethod.current() == METHOD_DITHER):
-		g_DitherMv = g_DacValue
-		print('dither selected')
+#	if (cbDacMethod.current() == METHOD_DITHER):
+#		g_DitherMv = g_DacValue
+#		print('dither selected')
 
 	return True
 
@@ -631,7 +634,7 @@ def select_combo(event):
 		txtFreq['state']		= tk.NORMAL
 
 		txtMvStep['state']		= tk.DISABLED
-#		btnSequence['state']	= tk.DISABLED
+		btnSequence['state']	= tk.DISABLED
 		txtWaitMs['state']		= tk.DISABLED
 		txtMvFrom['state']		= tk.DISABLED
 		txtMvTo['state']		= tk.DISABLED
@@ -644,7 +647,7 @@ def select_combo(event):
 		txtFreq['state']		= tk.DISABLED
 
 		txtMvStep['state']		= tk.NORMAL
-#		btnSequence['state']	= tk.NORMAL
+		btnSequence['state']	= tk.NORMAL
 		txtWaitMs['state']		= tk.NORMAL
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
@@ -653,11 +656,11 @@ def select_combo(event):
 		dacValue['state']		= tk.DISABLED
 
 		txtMvCenter['state']	= tk.DISABLED
-		txtLevel['state']		= tk.DISABLED
-		txtFreq['state']		= tk.DISABLED
+		txtLevel['state']		= tk.NORMAL
+		txtFreq['state']		= tk.NORMAL
 
 		txtMvStep['state']		= tk.NORMAL
-#		btnSequence['state']	= tk.NORMAL
+		btnSequence['state']	= tk.NORMAL
 		txtWaitMs['state']		= tk.NORMAL
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
@@ -716,7 +719,7 @@ def DitherReflect(ch, mv, level, hz):
 	text = dither_command_text(ch, mv, level, hz) + '\r\n'
 
 	g_serial.write(text.encode('shift-jis'))
-	print('dither ' + ch + ' ' + mv + ' ' + level + ' ' + hz)
+	print('dither ' + str(ch) + ' ' + str(mv) + ' ' + str(level) + ' ' + str(hz))
 
 ########################################
 #
@@ -734,13 +737,12 @@ def DitherReflect_clicked():
 
 	DitherReflect(ch, mv, level, hz)
 
+
 ########################################
 #
 def DitherOn():
 	global g_serial
 	global txtRecive
-
-	DitherReflect_clicked()
 
 	text = 'idle start\r\n'
 
@@ -761,6 +763,8 @@ def DitherOn_clicked():
 	global btnDitherOn
 	global btnDitherReflect
 	global btnDitherOff
+
+	DitherReflect_clicked()
 
 	DitherOn()
 
