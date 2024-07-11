@@ -180,7 +180,7 @@ def Open_clicked():
 	global cbDevCom
 	global cbDevBaud
 	global txtRecive
-	
+
 	EnableWidget()
 
 	try:
@@ -211,7 +211,7 @@ def Close_clicked():
 def writeData(time, current, load):
 	global g_DataFileName
 	global txtRecive
-	
+
 	csvLineData	= []
 
 	csvLineData.append(time)
@@ -233,6 +233,7 @@ def writeData(time, current, load):
 #
 def File_clicked():
 	global g_DataFileName
+	global cbDacMethod
 
 	# current time
 	time = datetime.now()
@@ -274,6 +275,8 @@ g_DitherHz		= 1000
 ########################################
 #
 def SetDacValue(ch, value):
+	global g_serial
+
 	dac_text = dac_command_text(ch, value) + '\r\n'
 	g_serial.write(dac_text.encode('shift-jis'))
 	text = dac_text[:-2]
@@ -294,11 +297,16 @@ def InitProcess():
 	global g_DitherLevel
 	global g_DitherHz
 	global cbDacCh
+	global cbDacMethod
 	global txtMvCenter
 	global txtLevel
 	global txtFreq
 	global txtRecive
-	
+	global txtMvFrom
+	global txtMvTo
+	global txtMvStep
+	global txtWaitMs
+
 	global g_nTimes
 	global g_nTime
 
@@ -333,18 +341,22 @@ def InitProcess():
 	g_nTimes = nTimes
 	g_nTime  = 0
 
-
 ########################################
 #
 def PreProcess():
 	global g_IntervalMs
 	global g_WaitItvMs
+	global g_WaitMs
 	global g_DacValue
 	global cbDacCh
 	global txtRecive
-	
+	global cbDacMethod
 	global g_nTimes
 	global g_nTime
+	global g_DitherCh
+	global g_DitherMv
+	global g_DitherLevel
+	global g_DitherHz
 
 	print('Pre Process')
 
@@ -392,13 +404,19 @@ def WaitSecond():
 ########################################
 #
 def PostProcess():
+	global g_serial
 	global g_DacValue
 	global g_DacDir
 	global g_loopFlg
 	global g_DataFileName
+	global g_DitherMv
 	global cbDacCh
+	global cbDacMethod
+	global txtMvFrom
+	global txtMvTo
+	global txtMvStep
 	global txtRecive
-	
+
 	print('Post Process')
 
 	# current time
@@ -484,22 +502,25 @@ def PostProcess():
 ########################################
 #
 ItvFuncList = [PreProcess, WaitSecond, PostProcess]
-idxFunc = 0
+g_idxFunc = 0
 
 ########################################
 #
 def interval_work():
 	global g_loopFlg
-	global idxFunc
+	global g_idxFunc
 	global g_serial
 	global g_DacValue
 	global g_root
+	global btnSequence
+	global btnStop
+	global g_IntervalMs
 
-	func = ItvFuncList[idxFunc]
+	func = ItvFuncList[g_idxFunc]
 	if (func()):
-		idxFunc += 1
-		if (idxFunc >= len(ItvFuncList)):
-			idxFunc = 0
+		g_idxFunc += 1
+		if (g_idxFunc >= len(ItvFuncList)):
+			g_idxFunc = 0
 
 #	txtRecive.see('end')
 	if (g_loopFlg == 1):
@@ -541,7 +562,7 @@ def Exit_clicked():
 ########################################
 #
 def DAC_clicked():
-	global g_serial
+#	global g_serial
 	global cbDacCh
 	global dacValue
 
@@ -584,7 +605,7 @@ def ZERO_clicked():
 def AMETER_clicked():
 	global g_serial
 	global txtRecive
-	
+
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
@@ -659,9 +680,11 @@ def Sequence_clicked():
 	global g_loopFlg
 	global g_DataFileName
 	global txtRecive
-	
-	print(type(g_DataFileName))
-	print(g_DataFileName)
+	global btnSequence
+	global btnStop
+
+#	print(type(g_DataFileName))
+#	print(g_DataFileName)
 
 	#
 	if (g_DataFileName == None or g_DataFileName ==""):
@@ -692,6 +715,8 @@ def Sequence_clicked():
 def Stop_clicked():
 	global g_loopFlg
 	global g_DataFileName
+	global btnSequence
+	global btnStop
 
 	g_loopFlg = 0
 	g_DataFileName = None
@@ -706,6 +731,8 @@ def dither_command_text(ch, mv, level, hz):
 ########################################
 #
 def DitherReflect(ch, mv, level, hz):
+	global g_serial
+
 	text = dither_command_text(ch, mv, level, hz) + '\r\n'
 
 	g_serial.write(text.encode('shift-jis'))
@@ -736,7 +763,7 @@ def DitherReflect_clicked():
 def DitherOn():
 	global g_serial
 	global txtRecive
-	
+
 	DitherReflect_clicked()
 
 	text = 'idle start\r\n'
@@ -755,6 +782,10 @@ def DitherOn():
 ########################################
 #
 def DitherOn_clicked():
+	global btnDitherOn
+	global btnDitherReflect
+	global btnDitherOff
+
 
 	DitherOn()
 
@@ -784,6 +815,9 @@ def DitherOff():
 ########################################
 #
 def DitherOff_clicked():
+	global btnDitherOn
+	global btnDitherReflect
+	global btnDitherOff
 
 	DitherOff()
 
