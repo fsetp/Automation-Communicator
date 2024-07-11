@@ -95,31 +95,31 @@ def EnableWidget():
 	global btnDitherOff
 	global txtRecive
 
-	btnOpen['state'] = tk.DISABLED			# Open
-	btnClose['state'] = tk.NORMAL			# Close
-	btnFile['state'] = tk.NORMAL			#
-	btnInit['state'] = tk.NORMAL			# Init
-	btnExit['state'] = tk.DISABLED			# Exit
-	cbDacCh['state'] = 'readonly'			# 
-	dacValue['state'] = 'readonly'			# 
-	btnDac['state'] = tk.NORMAL				# Dac
-	btnScale['state'] = tk.NORMAL			# 
-	btnScaleZero['state'] = tk.NORMAL		# 
-	btnAmeter['state'] = tk.NORMAL			# 
-	btnSequence['state'] = tk.DISABLED		#
-	cbDacMethod['state'] = 'readonly'		#
-	btnStop['state'] = tk.DISABLED			# Stop
-	txtMvStep['state'] = tk.DISABLED		# 
-	txtWaitMs['state'] = tk.DISABLED		#
-	txtMvFrom['state'] = tk.DISABLED		# 
-	txtMvTo['state'] = tk.DISABLED			# 
-	txtMvCenter['state'] = tk.NORMAL		# 
-	txtLevel['state'] = tk.NORMAL			# 
-	txtFreq['state'] = tk.NORMAL			# 
-#	txtRecive.delete('1.0',tk.END)			# 
-	btnDitherOn['state'] = tk.NORMAL		#
-	btnDitherReflect['state'] = tk.DISABLED	#
-	btnDitherOff['state'] = tk.DISABLED		#
+	btnOpen['state']			= tk.DISABLED	# Open
+	btnClose['state']			= tk.NORMAL		# Close
+	btnFile['state']			= tk.NORMAL		#
+	btnInit['state']			= tk.NORMAL		# Init
+	btnExit['state']			= tk.DISABLED	# Exit
+	cbDacCh['state']			= 'readonly'	# 
+	dacValue['state']			= 'readonly'	# 
+	btnDac['state']				= tk.NORMAL		# Dac
+	btnScale['state']			= tk.NORMAL		# 
+	btnScaleZero['state']		= tk.NORMAL		# 
+	btnAmeter['state']			= tk.NORMAL		# 
+	btnSequence['state']		= tk.DISABLED	#
+	cbDacMethod['state']		= 'readonly'	#
+	btnStop['state']			= tk.DISABLED	# Stop
+	txtMvStep['state']			= tk.DISABLED	# 
+	txtWaitMs['state']			= tk.DISABLED	#
+	txtMvFrom['state']			= tk.DISABLED	# 
+	txtMvTo['state']			= tk.DISABLED	# 
+	txtMvCenter['state']		= tk.NORMAL		# 
+	txtLevel['state']			= tk.NORMAL		# 
+	txtFreq['state']			= tk.NORMAL		# 
+#	txtRecive.delete('1.0',tk.END)				# 
+	btnDitherOn['state']		= tk.NORMAL		#
+	btnDitherReflect['state']	= tk.DISABLED	#
+	btnDitherOff['state']		= tk.DISABLED	#
 
 ########################################
 #
@@ -149,30 +149,30 @@ def DisableWidget():
 	global btnDitherReflect
 	global btnDitherOff
 
-	btnOpen['state'] = tk.NORMAL			# Open
-	btnClose['state'] = tk.DISABLED			# Close
-	btnFile['state'] = tk.DISABLED			#
-	btnInit['state'] = tk.DISABLED			# Init
-	btnExit['state'] = tk.NORMAL			# Exit
-	cbDacCh['state'] = tk.DISABLED			# 
-	dacValue['state'] = tk.DISABLED			# 
-	btnDac['state'] = tk.DISABLED			# Dac
-	btnScale['state'] = tk.DISABLED			# 
-	btnScaleZero['state'] = tk.DISABLED		# 
-	btnAmeter['state'] = tk.DISABLED		# 
-	btnSequence['state'] = tk.DISABLED		#
-	cbDacMethod['state'] = tk.DISABLED		#
-	btnStop['state'] = tk.DISABLED			# Stop
-	txtMvStep['state'] = tk.DISABLED		# 
-	txtWaitMs['state'] = tk.DISABLED		
-	txtMvFrom['state'] = tk.DISABLED		# 
-	txtMvTo['state'] = tk.DISABLED			# 
-	txtMvCenter['state'] = tk.DISABLED		# 
-	txtLevel['state'] = tk.DISABLED			# 
-	txtFreq['state'] = tk.DISABLED			# 
-	btnDitherOn['state'] = tk.DISABLED		#
-	btnDitherReflect['state'] = tk.DISABLED	#
-	btnDitherOff['state'] = tk.DISABLED		#
+	btnOpen['state']			= tk.NORMAL		# Open
+	btnClose['state']			= tk.DISABLED	# Close
+	btnFile['state']			= tk.DISABLED	#
+	btnInit['state']			= tk.DISABLED	# Init
+	btnExit['state']			= tk.NORMAL		# Exit
+	cbDacCh['state']			= tk.DISABLED	# 
+	dacValue['state']			= tk.DISABLED	# 
+	btnDac['state']				= tk.DISABLED	# Dac
+	btnScale['state']			= tk.DISABLED	# 
+	btnScaleZero['state']		= tk.DISABLED	# 
+	btnAmeter['state']			= tk.DISABLED	# 
+	btnSequence['state']		= tk.DISABLED	#
+	cbDacMethod['state']		= tk.DISABLED	#
+	btnStop['state']			= tk.DISABLED	# Stop
+	txtMvStep['state']			= tk.DISABLED	# 
+	txtWaitMs['state']			= tk.DISABLED	#
+	txtMvFrom['state']			= tk.DISABLED	# 
+	txtMvTo['state']			= tk.DISABLED	# 
+	txtMvCenter['state']		= tk.DISABLED	# 
+	txtLevel['state']			= tk.DISABLED	# 
+	txtFreq['state']			= tk.DISABLED	# 
+	btnDitherOn['state']		= tk.DISABLED	#
+	btnDitherReflect['state']	= tk.DISABLED	#
+	btnDitherOff['state']		= tk.DISABLED	#
 
 ########################################
 #
