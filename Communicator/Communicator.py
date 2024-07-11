@@ -31,6 +31,8 @@ METHOD_NONE		= 0
 METHOD_NORMAL	= 1
 METHOD_DITHER	= 2
 
+cbDevCom = None
+cbDevBaud = None
 btnOpen = None
 btnClose = None
 btnFile = None
@@ -91,7 +93,6 @@ def EnableWidget():
 	global btnDitherReflect
 	global btnDitherOff
 	global txtRecive
-
 
 	btnOpen['state'] = tk.DISABLED			# Open
 	btnClose['state'] = tk.NORMAL			# Close
@@ -177,6 +178,7 @@ def DisableWidget():
 def Open_clicked():
 	global g_serial
 	global cbDevCom
+	global cbDevBaud
 	global txtRecive
 	
 	EnableWidget()
@@ -184,6 +186,9 @@ def Open_clicked():
 	try:
 		com = 'COM' + cbDevCom.get()
 		baud = int(cbDevBaud.get())
+#		com = 'COM4'
+#		baud = 115200
+
 		print('connecting ...', com, baud)
 		g_serial = serial.Serial(com, baud, timeout = 0.5)
 		print('connecting succeeded.')
@@ -793,6 +798,8 @@ g_root = None
 ########################################
 #
 def main():
+	global cbDevCom
+	global cbDevBaud
 	global g_root
 	global btnOpen
 	global btnClose
