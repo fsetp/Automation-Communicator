@@ -100,14 +100,14 @@ def EnableWidget():
 	btnFile['state'] = tk.NORMAL			#
 	btnInit['state'] = tk.NORMAL			# Init
 	btnExit['state'] = tk.DISABLED			# Exit
-	cbDacCh['state'] = tk.NORMAL			# 
-	dacValue['state'] = tk.NORMAL			# 
+	cbDacCh['state'] = 'readonly'			# 
+	dacValue['state'] = 'readonly'			# 
 	btnDac['state'] = tk.NORMAL				# Dac
 	btnScale['state'] = tk.NORMAL			# 
 	btnScaleZero['state'] = tk.NORMAL		# 
 	btnAmeter['state'] = tk.NORMAL			# 
 	btnSequence['state'] = tk.DISABLED		#
-	cbDacMethod['state'] = tk.NORMAL		#
+	cbDacMethod['state'] = 'readonly'		#
 	btnStop['state'] = tk.DISABLED			# Stop
 	txtMvStep['state'] = tk.DISABLED		# 
 	txtWaitMs['state'] = tk.DISABLED		#
@@ -534,7 +534,7 @@ def interval_work():
 		g_root.after(g_IntervalMs, interval_work)
 
 	else:
-		btnSequence['state'] = tk.NORMAL		# Loop
+		btnSequence['state'] = 'readonly'		# Loop
 		btnStop['state'] = tk.DISABLED			# Stop
 
 ########################################
@@ -627,7 +627,7 @@ def select_combo(event):
 	idx = cbDacMethod.current()
 	if (idx == METHOD_NONE):
 
-		dacValue['state']		= tk.NORMAL
+		dacValue['state']		= 'readonly'
 
 		txtMvCenter['state']	= tk.NORMAL
 		txtLevel['state']		= tk.NORMAL
@@ -685,7 +685,7 @@ def Sequence_clicked():
 			return
 
 	btnSequence['state'] = tk.DISABLED
-	btnStop['state'] = tk.NORMAL
+	btnStop['state'] = 'readonly'
 	txtRecive.delete('1.0',tk.END)
 
 	InitProcess()
@@ -703,7 +703,7 @@ def Stop_clicked():
 
 	g_loopFlg = 0
 	g_DataFileName = None
-	btnSequence['state'] = tk.NORMAL
+	btnSequence['state'] = 'readonly'
 	btnStop['state'] = tk.DISABLED
 
 ########################################
@@ -769,8 +769,8 @@ def DitherOn_clicked():
 	DitherOn()
 
 	btnDitherOn['state'] = tk.DISABLED		#
-	btnDitherReflect['state'] = tk.NORMAL	#
-	btnDitherOff['state'] = tk.NORMAL		#
+	btnDitherReflect['state'] = 'readonly'	#
+	btnDitherOff['state'] = 'readonly'		#
 
 ########################################
 #
@@ -800,7 +800,7 @@ def DitherOff_clicked():
 
 	DitherOff()
 
-	btnDitherOn['state'] = tk.NORMAL		#
+	btnDitherOn['state'] = 'readonly'		#
 	btnDitherReflect['state'] = tk.DISABLED	#
 	btnDitherOff['state'] = tk.DISABLED		#
 
@@ -948,7 +948,7 @@ def main():
 	label_dac = tk.Label(g_root, text = 'Dac(mV) : ')
 	label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-	dacValue = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	dacValue = ttk.Entry(g_root, width = 6, state = 'readonly')
 	dacValue.delete(0, tk.END)
 	dacValue.insert(tk.END, '1000')
 	dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
