@@ -368,7 +368,10 @@ def InitProcess():
 		g_nLoopTimes = 1
 
 	#
-	nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+	if (nStep > 0):
+		nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+	else:
+		nTimes = 10
 	nTotalWaitMs = int(nTimes * g_WaitMs)
 	text = 'Times : ' + str(nTimes) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
@@ -478,9 +481,9 @@ def PostProcess():
 #	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
 	current = txtRcvCurrent[:-2]
 	current = str(current, 'utf-8')
-	current = current + ' mV'
-	print(current)
-	txtCurrent['text'] = current
+	text = current + ' mV'
+	print(text)
+	txtCurrent['text'] = text
 
 	# scale value (load)
 	g_serial.write("scale\r\n".encode('shift-jis'))
@@ -489,9 +492,9 @@ def PostProcess():
 #	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
 	scale = txtRcvScale[:-2]
 	scale = str(scale, 'utf-8')
-	scale = scale + ' g'
-	print(scale)
-	txtScale['text'] = scale
+	text = scale + ' g'
+	print(text)
+	txtScale['text'] = text
 
 #	txtRecive.see('end')
 
@@ -501,7 +504,7 @@ def PostProcess():
 	print(timetext)
 
 	# save to csv
-	writeCsvData(timetext, g_nLoopIndex, g_DacValue, current, scale)
+	writeCsvData(timetext, g_nLoopIndex, g_DacValue, float(current), float(scale))
 
 	# rise up
 	if (g_DacDir):
@@ -534,7 +537,7 @@ def PostProcess():
 
 			g_nLoopTimes -= 1
 
-			# still loop
+			# loop final
 			if (g_nLoopTimes == 0):
 
 				# loop end, clear file mame
@@ -556,7 +559,7 @@ def PostProcess():
 				elif (cbDacMethod.current() == METHOD_DITHER):
 					DitherOff()
 
-			# loop end
+			# loop continue
 			else:
 				g_DacDir	= True;
 				g_DacValue	= int(txtMvFrom.get())
