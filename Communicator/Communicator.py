@@ -19,6 +19,7 @@ from tkinter import ttk
 g_serial		= None
 g_loopFlg		= 0
 g_DataFileName	= None
+g_bOpen			= False
 
 ########################################
 #
@@ -60,6 +61,10 @@ btnDitherOn			= None
 btnDitherReflect	= None
 btnDitherOff		= None
 txtRecive			= None
+txtLoopTimes		= None
+txtRemainSec		= None
+txtScale			= None
+txtCurrent			= None
 
 ########################################
 #
@@ -93,15 +98,16 @@ def EnableWidget():
 	global btnDitherOn
 	global btnDitherReflect
 	global btnDitherOff
+	global txtLoopTimes
 	global txtRecive
 
 	btnOpen['state']			= tk.DISABLED	# Open
 	btnClose['state']			= tk.NORMAL		# Close
 	btnFile['state']			= tk.NORMAL		#
 	btnInit['state']			= tk.NORMAL		# Init
-	btnExit['state']			= tk.DISABLED	# Exit
+	btnExit['state']			= tk.NORMAL		# Exit
 	cbDacCh['state']			= 'readonly'	# 
-	dacValue['state']			= 'readonly'	# 
+	dacValue['state']			= tk.NORMAL		# 
 	btnDac['state']				= tk.NORMAL		# Dac
 	btnScale['state']			= tk.NORMAL		# 
 	btnScaleZero['state']		= tk.NORMAL		# 
@@ -116,10 +122,11 @@ def EnableWidget():
 	txtMvCenter['state']		= tk.NORMAL		# 
 	txtLevel['state']			= tk.NORMAL		# 
 	txtFreq['state']			= tk.NORMAL		# 
-#	txtRecive.delete('1.0',tk.END)				# 
 	btnDitherOn['state']		= tk.NORMAL		#
 	btnDitherReflect['state']	= tk.DISABLED	#
 	btnDitherOff['state']		= tk.DISABLED	#
+	txtLoopTimes['state']		= tk.DISABLED	#
+	txtRecive['state']			= tk.NORMAL		#
 
 ########################################
 #
@@ -147,6 +154,7 @@ def DisableWidget():
 	global txtFreq
 	global btnDitherOn
 	global btnDitherReflect
+	global txtLoopTimes
 	global btnDitherOff
 
 	btnOpen['state']			= tk.NORMAL		# Open
@@ -173,11 +181,14 @@ def DisableWidget():
 	btnDitherOn['state']		= tk.DISABLED	#
 	btnDitherReflect['state']	= tk.DISABLED	#
 	btnDitherOff['state']		= tk.DISABLED	#
+	txtLoopTimes['state']		= tk.DISABLED	#
+	txtRecive['state']			= tk.DISABLED	#
 
 ########################################
 #
 def Open_clicked():
 	global g_serial
+	global g_bOpen
 	global cbDevCom
 	global cbDevBaud
 	global txtRecive
@@ -191,29 +202,42 @@ def Open_clicked():
 		print('connecting ...', com, baud)
 		g_serial = serial.Serial(com, baud, timeout = 0.5)
 		print('connecting succeeded.')
+		txtRecive.delete('1.0',tk.END)
+		txtRecive.insert(tk.END,'Connected\r\n')
+		g_bOpen = True
 
 	except:
 		print('connecting error.')
-		txtRecive.insert(tk.END,'Device Error\r\n')
+		txtRecive.delete('1.0',tk.END)
+		txtRecive.insert(tk.END,'Connecting Error\r\n')
+		g_bOpen = False
 		DisableWidget()
 
 ########################################
 #
 def Close_clicked():
 	global g_serial
+	global g_bOpen
 
-	DisableWidget()
-	g_serial.close()
+	if (g_bOpen):
+		DisableWidget()
+		g_serial.close()
+		g_bOpen = False
+		print('connecting closed.')
+		txtRecive.delete('1.0',tk.END)
+		txtRecive.insert(tk.END,'Closed\r\n')
 
 ########################################
 #
-def writeData(time, current, load):
+def writeCsvData(time, idx, dac, current, load):
 	global g_DataFileName
 	global txtRecive
 
 	csvLineData	= []
 
 	csvLineData.append(time)
+	csvLineData.append(idx)
+	csvLineData.append(dac)
 	csvLineData.append(current)
 	csvLineData.append(load)
 	print(csvLineData)
@@ -255,26 +279,26 @@ def File_clicked():
 
 	# csv header text
 	if (g_DataFileName != ''):
-		writeData('Time', 'Current', 'Load')
+		writeCsvData('Time', 'Index', 'Dac', 'Current', 'Load')
 
 ########################################
 #	pre-process
 #	wait second
 #	post-process
 #
-g_IntervalMs	= int(100)
-g_WaitMs		= int(5000)
-g_WaitItvMs		= int(50)
-g_DacValue		= int(0)
-g_DacDir		= True;		# true:increase
+g_IntervalMs	= int(100)	# 100 ms
+g_WaitMs		= 0
+g_WaitItvMs		= 0
+g_DacValue		= 0
+g_DacDir		= True		# true:increase
 
 g_DitherCh		= 0
-#g_DitherMv		= 3000
-g_DitherLevel	= 10
-g_DitherHz		= 1000
+g_DitherLevel	= 0
+g_DitherHz		= 0
 
-g_nTimes = 0
-g_nTime  = 0
+g_nLoopTimes	= 0
+g_nLoopIndex	= 0
+g_nRemainSec	= 0
 
 ########################################
 #
@@ -294,7 +318,6 @@ def InitProcess():
 	global g_DacDir
 
 	global g_DitherCh
-#	global g_DitherMv
 	global g_DitherLevel
 	global g_DitherHz
 	global cbDacCh
@@ -307,11 +330,14 @@ def InitProcess():
 	global txtMvTo
 	global txtMvStep
 	global txtWaitMs
+	global txtLoopTimes
+	global g_nLoopIndex
+	global txtRemainSec
 
-	global g_nTimes
-	global g_nTime
+	global g_nLoopTimes
+	global g_nRemainSec
 
-	print('Init\r\n')
+	print('Init')
 
 	g_DacDir	= True;
 	g_DacValue	= int(txtMvFrom.get())
@@ -335,17 +361,26 @@ def InitProcess():
 	nTo    = int(txtMvTo.get())
 	nStep  = int(txtMvStep.get())
 
-	#
-	nTimes = (nTo - nFrom) / nStep * 2	# rising and falling
-	nTotalWaitMs = nTimes * g_WaitMs
-	text = 'Times : ' + str(nTimes) + '\r\n'
-	txtRecive.insert(tk.END,text.encode('ascii'))
-	text = 'Total Sec : ' + str(nTotalWaitMs / 1000) + '\r\n'
-	txtRecive.insert(tk.END,text.encode('ascii'))
+	# loop times
+	g_nLoopIndex = 0
+	g_nLoopTimes = int(txtLoopTimes.get())
+	if (g_nLoopTimes < 1):
+		g_nLoopTimes = 1
 
 	#
-	g_nTimes = nTimes
-	g_nTime  = 0
+	nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+	nTotalWaitMs = int(nTimes * g_WaitMs)
+	text = 'Times : ' + str(nTimes) + '\r\n'
+	txtRecive.insert(tk.END,text.encode('ascii'))
+	text = 'Total Sec : ' + str(int(nTotalWaitMs / 1000)) + '\r\n'
+	txtRecive.insert(tk.END,text.encode('ascii'))
+
+	print(str(g_nLoopIndex) + ' / ' + str(g_nLoopTimes))
+
+	# remain sec
+	g_nRemainSec = int(nTotalWaitMs / 1000)
+	text = str(g_nRemainSec) + ' sec'
+	txtRemainSec['text'] = text
 
 ########################################
 #
@@ -356,11 +391,10 @@ def PreProcess():
 	global g_DacValue
 	global cbDacCh
 	global txtRecive
+	global txtRemainSec
 	global cbDacMethod
-	global g_nTimes
-	global g_nTime
+	global g_nRemainSec
 	global g_DitherCh
-#	global g_DitherMv
 	global g_DitherLevel
 	global g_DitherHz
 
@@ -387,12 +421,15 @@ def PreProcess():
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
 
-	#
-	text = str(g_nTime) + ' / ' + str(g_nTimes) + '\r\n'
-	txtRecive.insert(tk.END,text.encode('ascii'))
-	text = text[:-2]
+	# Remain sec
+	text = str(g_nRemainSec) + ' sec'
+	txtRemainSec['text'] = text
+
+#	print(text + '\r\n')
 	print(text)
-	g_nTime += 1
+
+	# subdtruct remain sec
+	g_nRemainSec -= int(g_WaitMs / 1000)
 
 	return True
 
@@ -416,13 +453,16 @@ def PostProcess():
 	global g_DacDir
 	global g_loopFlg
 	global g_DataFileName
-#	global g_DitherMv
 	global cbDacCh
 	global cbDacMethod
 	global txtMvFrom
 	global txtMvTo
 	global txtMvStep
 	global txtRecive
+	global g_nLoopTimes
+	global g_nLoopIndex
+	global g_nRemainSec
+	global txtRemainSec
 
 	print('Post Process')
 
@@ -435,27 +475,33 @@ def PostProcess():
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcvCurrent = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
-
+#	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
 	current = txtRcvCurrent[:-2]
 	current = str(current, 'utf-8')
-	print(current + ' mV')
+	current = current + ' mV'
+	print(current)
+	txtCurrent['text'] = current
 
 	# scale value (load)
 	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcvScale = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
+#	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
 	scale = txtRcvScale[:-2]
 	scale = str(scale, 'utf-8')
-	print(scale + ' g')
+	scale = scale + ' g'
+	print(scale)
+	txtScale['text'] = scale
+
+#	txtRecive.see('end')
 
 	# current time
 	time = datetime.now()
-	timetext = time.strftime('%H:%M:%S.%f')
+	timetext = time.strftime('%H:%M:%S:%f')
+	print(timetext)
 
 	# save to csv
-	writeData(timetext, current, scale)
+	writeCsvData(timetext, g_nLoopIndex, g_DacValue, current, scale)
 
 	# rise up
 	if (g_DacDir):
@@ -486,18 +532,35 @@ def PostProcess():
 		# reach at 'From' value
 		else:
 
-			# loop end, clear file mame
-			g_loopFlg		= 0
-			g_DataFileName	= None
+			g_nLoopTimes -= 1
 
-			# if normal selected
-			if (cbDacMethod.current() == METHOD_NORMAL):
-				DacCh = cbDacCh.get()
-				SetDacValue(DacCh, 0)
+			# still loop
+			if (g_nLoopTimes == 0):
 
-			# if dither selected
-			elif (cbDacMethod.current() == METHOD_DITHER):
-				DitherOff()
+				# loop end, clear file mame
+				g_loopFlg		= 0
+				g_DataFileName	= None
+
+				# Remain sec
+				text = str(g_nRemainSec) + ' sec'
+				txtRemainSec['text'] = text
+
+				print(text + '\r\n')
+
+				# if normal selected
+				if (cbDacMethod.current() == METHOD_NORMAL):
+					DacCh = cbDacCh.get()
+					SetDacValue(DacCh, 0)
+
+				# if dither selected
+				elif (cbDacMethod.current() == METHOD_DITHER):
+					DitherOff()
+
+			# loop end
+			else:
+				g_DacDir	= True;
+				g_DacValue	= int(txtMvFrom.get())
+				g_nLoopIndex += 1
 
 	# if dither selected
 #	if (cbDacMethod.current() == METHOD_DITHER):
@@ -525,16 +588,16 @@ def interval_work():
 
 	func = ItvFuncList[g_idxFunc]
 	if (func()):
+		# increment func index
 		g_idxFunc += 1
 		if (g_idxFunc >= len(ItvFuncList)):
 			g_idxFunc = 0
 
-#	txtRecive.see('end')
 	if (g_loopFlg == 1):
 		g_root.after(g_IntervalMs, interval_work)
 
 	else:
-		btnSequence['state'] = 'readonly'		# Loop
+		btnSequence['state'] = tk.NORMAL		# Loop
 		btnStop['state'] = tk.DISABLED			# Stop
 
 ########################################
@@ -560,6 +623,8 @@ def Init_clicked():
 def Exit_clicked():
 	global g_root
 
+	Close_clicked()
+
 	g_root.destroy()
 
 ########################################
@@ -579,13 +644,18 @@ def DAC_clicked():
 #
 def SCALE_clicked():
 	global g_serial
+	global txtScale
 	global txtRecive
-	
+
 	g_serial.write("scale\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	print(txtRcv)
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+	text = txtRcv[:-2]
+	text = str(text, 'utf-8')
+	text = text + ' g'
+	print(text)
+	txtScale['text'] = text
 
 ########################################
 #
@@ -598,18 +668,21 @@ def ZERO_clicked():
 #
 def AMETER_clicked():
 	global g_serial
+	global txtCurrent
 	global txtRecive
 
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	text = str(txtRcv)
-	text = text.replace('\r\n', '')
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+	text = txtRcv[:-2]
+	text = str(text, 'utf-8')
+	text = text + ' mA'
 	print(text)
+	txtCurrent['text'] = text
 
 ########################################
-#
+# Combobox Selected
 def select_combo(event):
 	global cbDacCh
 	global dacValue
@@ -625,9 +698,12 @@ def select_combo(event):
 	global txtMvTo
 
 	idx = cbDacMethod.current()
+
+	# Loop not selected
 	if (idx == METHOD_NONE):
 
-		dacValue['state']		= 'readonly'
+		btnDac['state']			= tk.NORMAL
+		dacValue['state']		= tk.NORMAL
 
 		txtMvCenter['state']	= tk.NORMAL
 		txtLevel['state']		= tk.NORMAL
@@ -638,8 +714,11 @@ def select_combo(event):
 		txtWaitMs['state']		= tk.DISABLED
 		txtMvFrom['state']		= tk.DISABLED
 		txtMvTo['state']		= tk.DISABLED
+		txtLoopTimes['state']	= tk.DISABLED
 
+	# Normal loop selected
 	elif (idx == METHOD_NORMAL):
+		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
 		txtMvCenter['state']	= tk.DISABLED
@@ -651,8 +730,11 @@ def select_combo(event):
 		txtWaitMs['state']		= tk.NORMAL
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
+		txtLoopTimes['state']	= tk.NORMAL
 
+	# dither loop selected
 	elif (idx == METHOD_DITHER):
+		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
 		txtMvCenter['state']	= tk.DISABLED
@@ -664,6 +746,7 @@ def select_combo(event):
 		txtWaitMs['state']		= tk.NORMAL
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
+		txtLoopTimes['state']	= tk.NORMAL
 
 ########################################
 #
@@ -684,14 +767,14 @@ def Sequence_clicked():
 		if (g_DataFileName ==""):
 			return
 
-	btnSequence['state'] = tk.DISABLED
-	btnStop['state'] = 'readonly'
-	txtRecive.delete('1.0',tk.END)
-
 	InitProcess()
 
 	g_loopFlg = 1 
 	interval_work()
+
+	btnSequence['state'] = tk.DISABLED
+	btnStop['state'] = tk.NORMAL
+	txtRecive.delete('1.0',tk.END)
 
 ########################################
 #
@@ -700,10 +783,16 @@ def Stop_clicked():
 	global g_DataFileName
 	global btnSequence
 	global btnStop
+	global cbDacMethod
 
 	g_loopFlg = 0
 	g_DataFileName = None
-	btnSequence['state'] = 'readonly'
+
+	# if dither selected
+	if (cbDacMethod.current() == METHOD_DITHER):
+		DitherOff()
+
+	btnSequence['state'] =  tk.NORMAL
 	btnStop['state'] = tk.DISABLED
 
 ########################################
@@ -751,7 +840,7 @@ def DitherOn():
 
 	sleep(0.1)
 	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 
 	reply = txtRcv[:-2]
 	reply = str(reply, 'utf-8')
@@ -769,8 +858,8 @@ def DitherOn_clicked():
 	DitherOn()
 
 	btnDitherOn['state'] = tk.DISABLED		#
-	btnDitherReflect['state'] = 'readonly'	#
-	btnDitherOff['state'] = 'readonly'		#
+	btnDitherReflect['state'] = tk.NORMAL	#
+	btnDitherOff['state'] = tk.NORMAL		#
 
 ########################################
 #
@@ -785,7 +874,7 @@ def DitherOff():
 	print('idle stop')
 	sleep(0.1)
 	txtRcv = g_serial.readline()
-	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
 
 	reply = txtRcv[:-2]
 	reply = str(reply, 'utf-8')
@@ -800,7 +889,7 @@ def DitherOff_clicked():
 
 	DitherOff()
 
-	btnDitherOn['state'] = 'readonly'		#
+	btnDitherOn['state'] = tk.NORMAL		#
 	btnDitherReflect['state'] = tk.DISABLED	#
 	btnDitherOff['state'] = tk.DISABLED		#
 
@@ -838,6 +927,10 @@ def main():
 	global btnDitherOn
 	global btnDitherReflect
 	global btnDitherOff
+	global txtLoopTimes
+	global txtRemainSec
+	global txtCurrent
+	global txtScale
 	global txtRecive
 
 	########################################
@@ -913,7 +1006,7 @@ def main():
 
 	########################################
 	# ameter
-	btnAmeter = tk.Button(master = g_root, text = 'AMETER', command = AMETER_clicked, state = tk.DISABLED, width = 10)
+	btnAmeter = tk.Button(master = g_root, text = 'CURRENT', command = AMETER_clicked, state = tk.DISABLED, width = 10)
 	btnAmeter.grid(row = row_idx, column = 2, padx = 2, pady = 3)
 
 	########################################
@@ -925,6 +1018,24 @@ def main():
 	cbDacMethod.set(MethodText[0])
 	cbDacMethod.grid(row = row_idx, column = 4, sticky = tk.W)
 	cbDacMethod.bind('<<ComboboxSelected>>', select_combo)
+
+	row_idx += 1
+
+	########################################
+	# Scale
+	labelScale = tk.Label(g_root, text = 'Scale : ')
+	labelScale.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtScale = tk.Label(g_root, text = '0 g')
+	txtScale.grid(row = row_idx, column = 1, sticky = tk.W, pady = 3)
+
+	########################################
+	# Current
+	labelCurrent = tk.Label(g_root, text = 'Current : ')
+	labelCurrent.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtCurrent = tk.Label(g_root, text = '0 mA')
+	txtCurrent.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
 
 	row_idx += 1
 
@@ -948,7 +1059,7 @@ def main():
 	label_dac = tk.Label(g_root, text = 'Dac(mV) : ')
 	label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
 
-	dacValue = ttk.Entry(g_root, width = 6, state = 'readonly')
+	dacValue = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
 	dacValue.delete(0, tk.END)
 	dacValue.insert(tk.END, '1000')
 	dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
@@ -1084,10 +1195,31 @@ def main():
 	row_idx += 1
 
 	########################################
+	# Loop Times
+	labelLoopTimes = tk.Label(g_root, text = 'Loop Times : ')
+	labelLoopTimes.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtLoopTimes = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtLoopTimes.delete(0, tk.END)
+	txtLoopTimes.insert(tk.END, '1')
+	txtLoopTimes.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtLoopTimes['state'] = tk.DISABLED
+
+	########################################
+	# Remain Sec
+	labelRemaimSec = tk.Label(g_root, text = 'Remain : ')
+	labelRemaimSec.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtRemainSec = tk.Label(g_root, text = '0 sec')
+	txtRemainSec.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
+
+	row_idx += 1
+
+	########################################
 	#
 	#txtRecive = tkinter.scrolledtext.ScrolledText(g_root , width = 52, height = 13)
-	txtRecive = tkinter.scrolledtext.ScrolledText(g_root , width = 56, height = 10)
-	txtRecive.grid(row = row_idx , column = 0, columnspan = 5 ,padx = 10,pady = 10)
+	txtRecive = tkinter.scrolledtext.ScrolledText(g_root , width = 56, height = 5)
+	txtRecive.grid(row = row_idx , column = 0, columnspan = 5 ,padx = 10, pady = 10)
 
 	########################################
 	#
