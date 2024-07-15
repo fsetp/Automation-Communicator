@@ -127,6 +127,10 @@ def EnableWidget():
 	btnDitherReflect['state']	= tk.DISABLED	#
 	btnDitherOff['state']		= tk.DISABLED	#
 	txtLoopTimes['state']		= tk.DISABLED	#
+	txtUpBottom['state']		= tk.DISABLED	#
+	txtUpTop['state']			= tk.DISABLED	#
+	txtDownTop['state']			= tk.DISABLED	#
+	txtDownBottom['state']		= tk.DISABLED	#
 	txtRecive['state']			= tk.NORMAL		#
 
 ########################################
@@ -183,6 +187,10 @@ def DisableWidget():
 	btnDitherReflect['state']	= tk.DISABLED	#
 	btnDitherOff['state']		= tk.DISABLED	#
 	txtLoopTimes['state']		= tk.DISABLED	#
+	txtUpBottom['state']		= tk.DISABLED	#
+	txtUpTop['state']			= tk.DISABLED	#
+	txtDownTop['state']			= tk.DISABLED	#
+	txtDownBottom['state']		= tk.DISABLED	#
 	txtRecive['state']			= tk.DISABLED	#
 
 ########################################
@@ -343,6 +351,11 @@ def InitProcess():
 	global txtMvStep
 	global txtWaitMs
 	global txtLoopTimes
+	global txtUpBottom
+	global txtUpTop
+	global txtDownTop
+	global txtDownBottom
+
 	global g_nLoopIndex
 	global txtRemainSec
 
@@ -400,10 +413,10 @@ def InitProcess():
 
 	# if 4 points selected
 	elif (cbDacMethod.current() == METHOD_4POINTS):
-		pt1 = 200
-		pt2 = 220
-		pt3 = 200
-		pt4 = 180
+		pt1 = int(txtUpBottom.get())
+		pt2 = int(txtUpTop.get())
+		pt3 = int(txtDownTop.get())
+		pt4 = int(txtDownTop.get())
 		g_FourPoints = [pt1, pt2, pt3, pt4]
 		g_FourPointsIdx = 0		# 0 to len(g_FourPoints) - 1
 		g_DacValue		= g_FourPoints[g_FourPointsIdx]
@@ -595,6 +608,9 @@ def PostProcess():
 				elif (cbDacMethod.current() == METHOD_DITHER):
 					DitherOff()
 
+				#
+				selectMethod()
+
 			# loop continue (start from loop top)
 			else:
 				g_nLoopIndex += 1
@@ -655,6 +671,9 @@ def PostProcess():
 					elif (cbDacMethod.current() == METHOD_DITHER):
 						DitherOff()
 
+					#
+					selectMethod()
+
 				# loop continue (start from loop top)
 				else:
 					g_DacDir	= True;
@@ -682,8 +701,10 @@ def PostProcess():
 				# Remain sec
 				text = str(g_nRemainSec) + ' sec'
 				txtRemainSec['text'] = text
-
 				print(text + '\r\n')
+
+				#
+				selectMethod()
 
 		# set next dac
 		g_DacValue = g_FourPoints[g_FourPointsIdx]
@@ -826,7 +847,7 @@ def selectMethod():
 	# Loop not selected
 	if (idx == METHOD_NONE):
 
-		cbDacMethod['state']		= tk.NORMAL
+		cbDacMethod['state']	= tk.NORMAL
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.NORMAL
 		dacValue['state']		= tk.NORMAL
@@ -841,11 +862,15 @@ def selectMethod():
 		txtMvFrom['state']		= tk.DISABLED
 		txtMvTo['state']		= tk.DISABLED
 		txtLoopTimes['state']	= tk.DISABLED
+		txtUpBottom['state']	= tk.DISABLED	#
+		txtUpTop['state']		= tk.DISABLED	#
+		txtDownTop['state']		= tk.DISABLED	#
+		txtDownBottom['state']	= tk.DISABLED	#
 
 	# Normal loop selected
 	elif (idx == METHOD_NORMAL):
 
-		cbDacMethod['state']		= tk.NORMAL
+		cbDacMethod['state']	= tk.NORMAL
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
@@ -860,11 +885,15 @@ def selectMethod():
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
 		txtLoopTimes['state']	= tk.NORMAL
+		txtUpBottom['state']	= tk.DISABLED
+		txtUpTop['state']		= tk.DISABLED
+		txtDownTop['state']		= tk.DISABLED
+		txtDownBottom['state']	= tk.DISABLED
 
 	# dither loop selected
 	elif (idx == METHOD_DITHER):
 
-		cbDacMethod['state']		= tk.NORMAL
+		cbDacMethod['state']	= tk.NORMAL
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
@@ -879,11 +908,15 @@ def selectMethod():
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
 		txtLoopTimes['state']	= tk.NORMAL
+		txtUpBottom['state']	= tk.DISABLED
+		txtUpTop['state']		= tk.DISABLED
+		txtDownTop['state']		= tk.DISABLED
+		txtDownBottom['state']	= tk.DISABLED
 
 	# 4 points loop selected
 	elif (idx == METHOD_4POINTS):
 
-		cbDacMethod['state']		= tk.NORMAL
+		cbDacMethod['state']	= tk.NORMAL
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
@@ -898,6 +931,10 @@ def selectMethod():
 		txtMvFrom['state']		= tk.DISABLED
 		txtMvTo['state']		= tk.DISABLED
 		txtLoopTimes['state']	= tk.NORMAL
+		txtUpBottom['state']	= tk.NORMAL
+		txtUpTop['state']		= tk.NORMAL
+		txtDownTop['state']		= tk.NORMAL
+		txtDownBottom['state']	= tk.NORMAL
 
 ########################################
 # Combobox Selected
@@ -945,6 +982,10 @@ def Sequence_clicked():
 	txtMvFrom['state']		= tk.DISABLED
 	txtMvTo['state']		= tk.DISABLED
 	txtLoopTimes['state']	= tk.DISABLED
+	txtUpBottom['state']	= tk.DISABLED
+	txtUpTop['state']		= tk.DISABLED
+	txtDownTop['state']		= tk.DISABLED
+	txtDownBottom['state']	= tk.DISABLED
 
 	btnSequence['state'] = tk.DISABLED
 	btnStop['state'] = tk.NORMAL
@@ -1107,6 +1148,11 @@ def main():
 	global txtRemainSec
 	global txtCurrent
 	global txtScale
+	global txtUpBottom
+	global txtUpTop
+	global txtDownTop
+	global txtDownBottom
+
 	global txtRecive
 
 	########################################
@@ -1307,6 +1353,54 @@ def main():
 	row_idx += 1
 
 	########################################
+	# Down Top
+	labelDownTop = tk.Label(g_root, text = 'Down Top : ')
+	labelDownTop.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtDownTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtDownTop.delete(0, tk.END)
+	txtDownTop.insert(tk.END, '200')
+	txtDownTop.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtDownTop['state'] = tk.DISABLED
+
+	########################################
+	# Up Top
+	labelUpTop = tk.Label(g_root, text = 'Up Top : ')
+	labelUpTop.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtUpTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtUpTop.delete(0, tk.END)
+	txtUpTop.insert(tk.END, '220')
+	txtUpTop.grid(row = row_idx, column = 3, sticky = tk.W)
+	txtUpTop['state'] = tk.DISABLED
+
+	row_idx += 1
+
+	########################################
+	# Down Bottom
+	labelDownBottom = tk.Label(g_root, text = 'Down Bottom : ')
+	labelDownBottom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtDownBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtDownBottom.delete(0, tk.END)
+	txtDownBottom.insert(tk.END, '180')
+	txtDownBottom.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtDownBottom['state'] = tk.DISABLED
+
+	########################################
+	# Up Bottom
+	labelUpBottom = tk.Label(g_root, text = 'Up Bottom : ')
+	labelUpBottom.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtUpBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtUpBottom.delete(0, tk.END)
+	txtUpBottom.insert(tk.END, '200')
+	txtUpBottom.grid(row = row_idx, column = 3, sticky = tk.W)
+	txtUpBottom['state'] = tk.DISABLED
+
+	row_idx += 1
+
+	########################################
 	#
 	border3 = ttk.Separator(g_root, orient = 'horizontal')
 	border3.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
@@ -1371,6 +1465,12 @@ def main():
 	row_idx += 1
 
 	########################################
+	#
+	border4 = ttk.Separator(g_root, orient = 'horizontal')
+	border4.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	row_idx += 1
+
+	########################################
 	# Loop Times
 	labelLoopTimes = tk.Label(g_root, text = 'Loop Times : ')
 	labelLoopTimes.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
@@ -1388,54 +1488,6 @@ def main():
 
 	txtRemainSec = tk.Label(g_root, text = '0 sec')
 	txtRemainSec.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
-
-	row_idx += 1
-
-	########################################
-	# Down Top
-	labelDownTop = tk.Label(g_root, text = 'Down Top : ')
-	labelDownTop.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
-
-	txtDownTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
-	txtDownTop.delete(0, tk.END)
-	txtDownTop.insert(tk.END, '100')
-	txtDownTop.grid(row = row_idx, column = 1, sticky = tk.W)
-	txtDownTop['state'] = tk.DISABLED
-
-	########################################
-	# Up Top
-	labelUpTop = tk.Label(g_root, text = 'Up Top : ')
-	labelUpTop.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
-
-	txtUpTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
-	txtUpTop.delete(0, tk.END)
-	txtUpTop.insert(tk.END, '100')
-	txtUpTop.grid(row = row_idx, column = 3, sticky = tk.W)
-	txtUpTop['state'] = tk.DISABLED
-
-	row_idx += 1
-
-	########################################
-	# Down Bottom
-	labelDownBottom = tk.Label(g_root, text = 'Down Bottom : ')
-	labelDownBottom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
-
-	txtDownBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
-	txtDownBottom.delete(0, tk.END)
-	txtDownBottom.insert(tk.END, '100')
-	txtDownBottom.grid(row = row_idx, column = 1, sticky = tk.W)
-	txtDownBottom['state'] = tk.DISABLED
-
-	########################################
-	# Up Bottom
-	labelUpBottom = tk.Label(g_root, text = 'Up Bottom : ')
-	labelUpBottom.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
-
-	txtUpBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
-	txtUpBottom.delete(0, tk.END)
-	txtUpBottom.insert(tk.END, '100')
-	txtUpBottom.grid(row = row_idx, column = 3, sticky = tk.W)
-	txtUpBottom['state'] = tk.DISABLED
 
 	row_idx += 1
 
