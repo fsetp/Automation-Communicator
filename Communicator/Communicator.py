@@ -27,10 +27,11 @@ ComChText	= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 BaudText	= ['9600', '115200']
 DacChText	= ['0', '1']
 
-MethodText	= ['-', 'Normal', 'Dither']		# cbDacMethod
+MethodText	= ['-', 'Normal', 'Dither', '4 points']		# cbDacMethod
 METHOD_NONE		= 0
 METHOD_NORMAL	= 1
 METHOD_DITHER	= 2
+METHOD_4POINTS	= 3
 
 ########################################
 # widget globals
@@ -265,13 +266,21 @@ def File_clicked():
 	fTyp = [("csv file", "*.csv")]
 	iniDir = os.path.abspath(os.path.dirname(__file__))
 
-	# if normal selected
-	if (cbDacMethod.current() == METHOD_NORMAL):
+	# None
+	if (cbDacMethod.current() == METHOD_NONE):
+		pass
+
+	# normal selected
+	elif (cbDacMethod.current() == METHOD_NORMAL):
 		iniFile = 'normal_' + timetext + '.csv'
 
-	# if dither selected
-	else:
+	# dither selected
+	elif (cbDacMethod.current() == METHOD_DITHER):
 		iniFile = 'dither_' + timetext + '.csv'
+
+	# 4 points selected
+	elif (cbDacMethod.current() == METHOD_4POINTS):
+		iniFile = 'fourpoints_' + timetext + '.csv'
 
 	#
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
@@ -299,6 +308,9 @@ g_DitherHz		= 0
 g_nLoopTimes	= 0
 g_nLoopIndex	= 0
 g_nRemainSec	= 0
+
+g_FourPoints	= None
+g_FourPointsIdx	= 0
 
 ########################################
 #
@@ -337,29 +349,16 @@ def InitProcess():
 	global g_nLoopTimes
 	global g_nRemainSec
 
+	global g_FourPoints
+	global g_FourPointsIdx
+
 	print('Init')
-
-	g_DacDir	= True;
-	g_DacValue	= int(txtMvFrom.get())
-	g_WaitMs	= int(txtWaitMs.get())
-
-	# if normal selected
-	if (cbDacMethod.current() == METHOD_NORMAL):
-		pass
-
-	# if dither selected
-	elif (cbDacMethod.current() == METHOD_DITHER):
-		g_DitherCh		= int(cbDacCh.get())
-		g_DitherLevel	= int(txtLevel.get())
-		g_DitherHz		= int(txtFreq.get())
-
-		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
-		DitherOn()
 
 	#
 	nFrom  = int(txtMvFrom.get())
 	nTo    = int(txtMvTo.get())
 	nStep  = int(txtMvStep.get())
+	nTimes = 0
 
 	# loop times
 	g_nLoopIndex = 0
@@ -367,11 +366,52 @@ def InitProcess():
 	if (g_nLoopTimes < 1):
 		g_nLoopTimes = 1
 
+	# if none selected
+	if (cbDacMethod.current() == METHOD_NONE):
+		pass
+
+	# if normal selected
+	elif (cbDacMethod.current() == METHOD_NORMAL):
+		g_DacDir	= True;
+		g_DacValue	= int(txtMvFrom.get())
+		g_WaitMs	= int(txtWaitMs.get())
+
+		if (nStep > 0):
+			nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+		else:
+			nTimes = g_nLoopTimes
+
+	# if dither selected
+	elif (cbDacMethod.current() == METHOD_DITHER):
+		g_DacDir		= True;
+		g_DacValue		= int(txtMvFrom.get())
+		g_WaitMs		= int(txtWaitMs.get())
+		g_DitherCh		= int(cbDacCh.get())
+		g_DitherLevel	= int(txtLevel.get())
+		g_DitherHz		= int(txtFreq.get())
+
+		if (nStep > 0):
+			nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+		else:
+			nTimes = g_nLoopTimes
+
+		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
+		DitherOn()
+
+	# if 4 points selected
+	elif (cbDacMethod.current() == METHOD_4POINTS):
+		pt1 = 200
+		pt2 = 220
+		pt3 = 200
+		pt4 = 180
+		g_FourPoints = [pt1, pt2, pt3, pt4]
+		g_FourPointsIdx = 0		# 0 to len(g_FourPoints) - 1
+		g_DacValue		= g_FourPoints[g_FourPointsIdx]
+		g_WaitMs		= int(txtWaitMs.get())
+
+		nTimes = g_nLoopTimes * len(g_FourPoints)
+
 	#
-	if (nStep > 0):
-		nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
-	else:
-		nTimes = 10
 	nTotalWaitMs = int(nTimes * g_WaitMs)
 	text = 'Times : ' + str(nTimes) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
@@ -401,6 +441,9 @@ def PreProcess():
 	global g_DitherLevel
 	global g_DitherHz
 
+	global g_FourPoints
+	global g_FourPointsIdx
+
 	print('Pre Process')
 
 	# current time
@@ -408,8 +451,12 @@ def PreProcess():
 	timetext = time.strftime('%Y/%m/%d %H:%M:%S')
 	print(timetext)
 
+	# if none selected
+	if (cbDacMethod.current() == METHOD_NONE):
+		pass
+
 	# if normal selected
-	if (cbDacMethod.current() == METHOD_NORMAL):
+	elif (cbDacMethod.current() == METHOD_NORMAL):
 
 		# set value
 		#
@@ -420,6 +467,14 @@ def PreProcess():
 	elif (cbDacMethod.current() == METHOD_DITHER):
 
 		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
+
+	# if 4 points selected
+	elif (cbDacMethod.current() == METHOD_4POINTS):
+
+		# set value
+		#
+		DacCh = cbDacCh.get()
+		SetDacValue(DacCh, g_DacValue)
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
@@ -467,12 +522,17 @@ def PostProcess():
 	global g_nRemainSec
 	global txtRemainSec
 
+	global g_FourPoints
+	global g_FourPointsIdx
+
 	print('Post Process')
 
 	# current time
 	time = datetime.now()
 	timetext = time.strftime('%Y/%m/%d %H:%M:%S')
+	csvtimetext = time.strftime('%H:%M:%S:%f')
 	print(timetext)
+	print(csvtimetext)
 
 	# current value
 	g_serial.write("current\r\n".encode('shift-jis'))
@@ -498,43 +558,19 @@ def PostProcess():
 
 #	txtRecive.see('end')
 
-	# current time
-	time = datetime.now()
-	timetext = time.strftime('%H:%M:%S:%f')
-	print(timetext)
-
 	# save to csv
-	writeCsvData(timetext, g_nLoopIndex, g_DacValue, float(current), float(scale))
+	writeCsvData(csvtimetext, g_nLoopIndex, g_DacValue, float(current), float(scale))
 
-	# rise up
-	if (g_DacDir):
-		# under 'To' value
-		nTo = int(txtMvTo.get())
-		if (g_DacValue < nTo):
-			g_DacValue += int(txtMvStep.get())
-			print('dac : ' + str(g_DacValue) + ' mV')
+	# if none selected
+	if (cbDacMethod.current() == METHOD_NONE):
+		pass
 
-			# arrive at top
-			if (g_DacValue == nTo):
-				if (g_DacDir):
-					g_DacDir = False
+	# if normal or dither selected
+	elif (cbDacMethod.current() == METHOD_NORMAL or cbDacMethod.current() == METHOD_DITHER):
 
-		# reach at top
-		else:
-			if (g_DacDir):
-				g_DacDir = False
-
-	# fall down
-	else:
-		# over 'From' value
-		nFrom = int(txtMvFrom.get())
-		if (g_DacValue > nFrom):
-			g_DacValue -= int(txtMvStep.get())
-			print('dac : ' + str(g_DacValue) + ' mV')
-
-		# reach at 'From' value
-		else:
-
+		# not increase
+		nStep  = int(txtMvStep.get())
+		if (nStep == 0):
 			g_nLoopTimes -= 1
 
 			# loop final
@@ -559,16 +595,100 @@ def PostProcess():
 				elif (cbDacMethod.current() == METHOD_DITHER):
 					DitherOff()
 
-			# loop continue
+			# loop continue (start from loop top)
 			else:
-				g_DacDir	= True;
-				g_DacValue	= int(txtMvFrom.get())
 				g_nLoopIndex += 1
 
-	# if dither selected
-#	if (cbDacMethod.current() == METHOD_DITHER):
-#		g_DitherMv = g_DacValue
-#		print('dither selected')
+		# rise up
+		elif (g_DacDir):
+			# under 'To' value
+			nTo = int(txtMvTo.get())
+			if (g_DacValue < nTo):
+
+				# increment dac value
+				g_DacValue += int(txtMvStep.get())
+				print('dac : ' + str(g_DacValue) + ' mV')
+
+				# arrive at top
+				if (g_DacValue == nTo):
+					if (g_DacDir):
+						g_DacDir = False
+
+			# reach at top
+			else:
+				if (g_DacDir):
+					g_DacDir = False
+
+		# fall down
+		else:
+			# over 'From' value (still continue loop)
+			nFrom = int(txtMvFrom.get())
+			if (g_DacValue > nFrom):
+
+				# decrement dac value
+				g_DacValue -= int(txtMvStep.get())
+				print('dac : ' + str(g_DacValue) + ' mV')
+
+			# reach at 'From' value (loop end)
+			else:
+				g_nLoopTimes -= 1
+
+				# loop final
+				if (g_nLoopTimes == 0):
+
+					# loop end, clear file mame
+					g_loopFlg		= 0
+					g_DataFileName	= None
+
+					# Remain sec
+					text = str(g_nRemainSec) + ' sec'
+					txtRemainSec['text'] = text
+
+					print(text + '\r\n')
+
+					# if normal selected
+					if (cbDacMethod.current() == METHOD_NORMAL):
+						DacCh = cbDacCh.get()
+						SetDacValue(DacCh, 0)
+
+					# if dither selected
+					elif (cbDacMethod.current() == METHOD_DITHER):
+						DitherOff()
+
+				# loop continue (start from loop top)
+				else:
+					g_DacDir	= True;
+					g_DacValue	= int(txtMvFrom.get())
+					g_nLoopIndex += 1
+
+	# if 4 points selected
+	elif (cbDacMethod.current() == METHOD_4POINTS):
+		#
+		g_FourPointsIdx += 1
+		if (g_FourPointsIdx >= len(g_FourPoints)):
+			g_FourPointsIdx = 0
+			g_nLoopTimes -= 1
+
+			# loop final
+			if (g_nLoopTimes == 0):
+
+				# loop end, clear file mame
+				g_loopFlg		= 0
+				g_DataFileName	= None
+
+				DacCh = cbDacCh.get()
+				SetDacValue(DacCh, 0)
+
+				# Remain sec
+				text = str(g_nRemainSec) + ' sec'
+				txtRemainSec['text'] = text
+
+				print(text + '\r\n')
+
+		# set next dac
+		g_DacValue = g_FourPoints[g_FourPointsIdx]
+
+		pass
 
 	return True
 
@@ -749,6 +869,22 @@ def select_combo(event):
 		txtWaitMs['state']		= tk.NORMAL
 		txtMvFrom['state']		= tk.NORMAL
 		txtMvTo['state']		= tk.NORMAL
+		txtLoopTimes['state']	= tk.NORMAL
+
+	# 4 points loop selected
+	elif (idx == METHOD_4POINTS):
+		btnDac['state']			= tk.DISABLED
+		dacValue['state']		= tk.DISABLED
+
+		txtMvCenter['state']	= tk.DISABLED
+		txtLevel['state']		= tk.DISABLED
+		txtFreq['state']		= tk.DISABLED
+
+		txtMvStep['state']		= tk.DISABLED
+		btnSequence['state']	= tk.NORMAL
+		txtWaitMs['state']		= tk.NORMAL
+		txtMvFrom['state']		= tk.DISABLED
+		txtMvTo['state']		= tk.DISABLED
 		txtLoopTimes['state']	= tk.NORMAL
 
 ########################################
@@ -1215,6 +1351,54 @@ def main():
 
 	txtRemainSec = tk.Label(g_root, text = '0 sec')
 	txtRemainSec.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
+
+	row_idx += 1
+
+	########################################
+	# Down Top
+	labelDownTop = tk.Label(g_root, text = 'Down Top : ')
+	labelDownTop.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtDownTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtDownTop.delete(0, tk.END)
+	txtDownTop.insert(tk.END, '100')
+	txtDownTop.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtDownTop['state'] = tk.DISABLED
+
+	########################################
+	# Up Top
+	labelUpTop = tk.Label(g_root, text = 'Up Top : ')
+	labelUpTop.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtUpTop = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtUpTop.delete(0, tk.END)
+	txtUpTop.insert(tk.END, '100')
+	txtUpTop.grid(row = row_idx, column = 3, sticky = tk.W)
+	txtUpTop['state'] = tk.DISABLED
+
+	row_idx += 1
+
+	########################################
+	# Down Bottom
+	labelDownBottom = tk.Label(g_root, text = 'Down Bottom : ')
+	labelDownBottom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtDownBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtDownBottom.delete(0, tk.END)
+	txtDownBottom.insert(tk.END, '100')
+	txtDownBottom.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtDownBottom['state'] = tk.DISABLED
+
+	########################################
+	# Up Bottom
+	labelUpBottom = tk.Label(g_root, text = 'Up Bottom : ')
+	labelUpBottom.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtUpBottom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtUpBottom.delete(0, tk.END)
+	txtUpBottom.insert(tk.END, '100')
+	txtUpBottom.grid(row = row_idx, column = 3, sticky = tk.W)
+	txtUpBottom['state'] = tk.DISABLED
 
 	row_idx += 1
 
