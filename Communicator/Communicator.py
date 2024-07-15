@@ -805,8 +805,8 @@ def AMETER_clicked():
 	txtCurrent['text'] = text
 
 ########################################
-# Combobox Selected
-def select_combo(event):
+#
+def selectMethod():
 	global cbDacCh
 	global dacValue
 
@@ -820,11 +820,14 @@ def select_combo(event):
 	global txtMvFrom
 	global txtMvTo
 
+
 	idx = cbDacMethod.current()
 
 	# Loop not selected
 	if (idx == METHOD_NONE):
 
+		cbDacMethod['state']		= tk.NORMAL
+		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.NORMAL
 		dacValue['state']		= tk.NORMAL
 
@@ -841,6 +844,9 @@ def select_combo(event):
 
 	# Normal loop selected
 	elif (idx == METHOD_NORMAL):
+
+		cbDacMethod['state']		= tk.NORMAL
+		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
@@ -857,6 +863,9 @@ def select_combo(event):
 
 	# dither loop selected
 	elif (idx == METHOD_DITHER):
+
+		cbDacMethod['state']		= tk.NORMAL
+		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
@@ -873,6 +882,9 @@ def select_combo(event):
 
 	# 4 points loop selected
 	elif (idx == METHOD_4POINTS):
+
+		cbDacMethod['state']		= tk.NORMAL
+		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
@@ -886,6 +898,13 @@ def select_combo(event):
 		txtMvFrom['state']		= tk.DISABLED
 		txtMvTo['state']		= tk.DISABLED
 		txtLoopTimes['state']	= tk.NORMAL
+
+########################################
+# Combobox Selected
+def select_combo(event):
+
+	print(event)
+	selectMethod()
 
 ########################################
 #
@@ -911,6 +930,22 @@ def Sequence_clicked():
 	g_loopFlg = 1 
 	interval_work()
 
+	cbDacMethod['state']	= tk.DISABLED
+	cbDacCh['state']		= tk.DISABLED
+	btnDac['state']			= tk.DISABLED
+	dacValue['state']		= tk.DISABLED
+
+	txtMvCenter['state']	= tk.DISABLED
+	txtLevel['state']		= tk.DISABLED
+	txtFreq['state']		= tk.DISABLED
+
+	txtMvStep['state']		= tk.DISABLED
+	btnSequence['state']	= tk.DISABLED
+	txtWaitMs['state']		= tk.DISABLED
+	txtMvFrom['state']		= tk.DISABLED
+	txtMvTo['state']		= tk.DISABLED
+	txtLoopTimes['state']	= tk.DISABLED
+
 	btnSequence['state'] = tk.DISABLED
 	btnStop['state'] = tk.NORMAL
 	txtRecive.delete('1.0',tk.END)
@@ -930,6 +965,8 @@ def Stop_clicked():
 	# if dither selected
 	if (cbDacMethod.current() == METHOD_DITHER):
 		DitherOff()
+
+	selectMethod()
 
 	btnSequence['state'] =  tk.NORMAL
 	btnStop['state'] = tk.DISABLED
@@ -1075,7 +1112,7 @@ def main():
 	########################################
 	#
 	g_root = tk.Tk()
-	g_root.geometry('432x440')
+	g_root.geometry('434x450')
 	g_root.title('Communicator Tool for Atom Shell')
 
 	row_idx = 0
