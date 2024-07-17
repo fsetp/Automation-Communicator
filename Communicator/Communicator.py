@@ -416,8 +416,8 @@ def InitProcess():
 		pt1 = int(txtUpBottom.get())
 		pt2 = int(txtUpTop.get())
 		pt3 = int(txtDownTop.get())
-		pt4 = int(txtDownTop.get())
-		g_FourPoints = [pt1, pt2, pt3, pt4]
+		pt4 = int(txtDownBottom.get())
+		g_FourPoints	= [pt1, pt2, pt3, pt4]
 		g_FourPointsIdx = 0		# 0 to len(g_FourPoints) - 1
 		g_DacValue		= g_FourPoints[g_FourPointsIdx]
 		g_WaitMs		= int(txtWaitMs.get())
@@ -1159,7 +1159,7 @@ def main():
 	#
 	g_root = tk.Tk()
 	g_root.geometry('434x450')
-	g_root.title('Communicator Tool for Atom Shell')
+	g_root.title('Communicator Tool for Atom Shell Ver 1.00')
 
 	row_idx = 0
 	col_idx = 0
