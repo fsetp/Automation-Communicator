@@ -368,9 +368,9 @@ def InitProcess():
 	print('Init')
 
 	#
-	nFrom  = int(txtMvFrom.get())
-	nTo    = int(txtMvTo.get())
-	nStep  = int(txtMvStep.get())
+	nFrom  = float(txtMvFrom.get())
+	nTo    = float(txtMvTo.get())
+	nStep  = float(txtMvStep.get())
 	nTimes = 0
 
 	# loop times
@@ -397,7 +397,7 @@ def InitProcess():
 	# if dither selected
 	elif (cbDacMethod.current() == METHOD_DITHER):
 		g_DacDir		= True;
-		g_DacValue		= int(txtMvFrom.get())
+		g_DacValue		= float(txtMvFrom.get())
 		g_WaitMs		= int(txtWaitMs.get())
 		g_DitherCh		= int(cbDacCh.get())
 		g_DitherLevel	= int(txtLevel.get())
@@ -582,7 +582,7 @@ def PostProcess():
 	elif (cbDacMethod.current() == METHOD_NORMAL or cbDacMethod.current() == METHOD_DITHER):
 
 		# not increase
-		nStep  = int(txtMvStep.get())
+		nStep  = float(txtMvStep.get())
 		if (nStep == 0):
 			g_nLoopTimes -= 1
 
@@ -622,7 +622,7 @@ def PostProcess():
 			if (g_DacValue < nTo):
 
 				# increment dac value
-				g_DacValue += int(txtMvStep.get())
+				g_DacValue += float(txtMvStep.get())
 				print('dac : ' + str(g_DacValue) + ' mV')
 
 				# arrive at top
