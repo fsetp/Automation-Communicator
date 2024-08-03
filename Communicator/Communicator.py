@@ -26,6 +26,7 @@ g_bOpen			= False
 ComChText	= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 BaudText	= ['9600', '115200']
 DacChText	= ['0', '1']
+PwmChText	= ['0', '1', '2']
 
 MethodText	= ['-', 'Normal', 'Dither', '4 points']		# cbDacMethod
 METHOD_NONE		= 0
@@ -101,20 +102,41 @@ def EnableWidget():
 	global btnDitherOff
 	global txtLoopTimes
 	global txtRecive
+	global cbPwmCh
+	global dutyValue
+	global btnDuty
+	global btnDutyCw
+	global btnDutyCcw
+	global btnDutyStop
+	global btnDutyBrake
+	global btnDutyStandby
 
 	btnOpen['state']			= tk.DISABLED	# Open
 	btnClose['state']			= tk.NORMAL		# Close
 	btnFile['state']			= tk.NORMAL		#
 	btnInit['state']			= tk.NORMAL		# Init
 	btnExit['state']			= tk.NORMAL		# Exit
+	btnScale['state']			= tk.NORMAL		# 
+	btnScaleZero['state']		= tk.NORMAL		# 
+	cbDacMethod['state']		= 'readonly'	#
+	btnAmeter['state']			= tk.NORMAL		# 
 	cbDacCh['state']			= 'readonly'	# 
 	dacValue['state']			= tk.NORMAL		# 
 	btnDac['state']				= tk.NORMAL		# Dac
-	btnScale['state']			= tk.NORMAL		# 
-	btnScaleZero['state']		= tk.NORMAL		# 
-	btnAmeter['state']			= tk.NORMAL		# 
+
+	cbPwmCh['state']			= 'readonly'	# 
+	dutyValue['state']			= tk.NORMAL		#
+	btnDuty['state']			= tk.NORMAL		#
+	btnDutyCw['state']			= tk.NORMAL		#
+	btnDutyCcw['state']			= tk.NORMAL		#
+	btnDutyStop['state']		= tk.NORMAL		#
+	btnDutyBrake['state']		= tk.NORMAL		#
+	btnDutyStandby['state']		= tk.NORMAL		#
+
+	btnDitherReflect['state']	= tk.DISABLED	#
+	btnDitherOn['state']		= tk.NORMAL		#
+	btnDitherOff['state']		= tk.DISABLED	#
 	btnSequence['state']		= tk.DISABLED	#
-	cbDacMethod['state']		= 'readonly'	#
 	btnStop['state']			= tk.DISABLED	# Stop
 	txtMvStep['state']			= tk.DISABLED	# 
 	txtWaitMs['state']			= tk.DISABLED	#
@@ -123,9 +145,6 @@ def EnableWidget():
 	txtMvCenter['state']		= tk.NORMAL		# 
 	txtLevel['state']			= tk.NORMAL		# 
 	txtFreq['state']			= tk.NORMAL		# 
-	btnDitherOn['state']		= tk.NORMAL		#
-	btnDitherReflect['state']	= tk.DISABLED	#
-	btnDitherOff['state']		= tk.DISABLED	#
 	txtLoopTimes['state']		= tk.DISABLED	#
 	txtUpBottom['state']		= tk.DISABLED	#
 	txtUpTop['state']			= tk.DISABLED	#
@@ -161,6 +180,14 @@ def DisableWidget():
 	global btnDitherReflect
 	global txtLoopTimes
 	global btnDitherOff
+	global cbPwmCh
+	global dutyValue
+	global btnDuty
+	global btnDutyCw
+	global btnDutyCcw
+	global btnDutyStop
+	global btnDutyBrake
+	global btnDutyStandby
 
 	btnOpen['state']			= tk.NORMAL		# Open
 	btnClose['state']			= tk.DISABLED	# Close
@@ -170,6 +197,16 @@ def DisableWidget():
 	cbDacCh['state']			= tk.DISABLED	# 
 	dacValue['state']			= tk.DISABLED	# 
 	btnDac['state']				= tk.DISABLED	# Dac
+
+	cbPwmCh['state']			= 'readonly'	# 
+	dutyValue['state']			= tk.DISABLED	#
+	btnDuty['state']			= tk.DISABLED	#
+	btnDutyCw['state']			= tk.DISABLED	#
+	btnDutyCcw['state']			= tk.DISABLED	#
+	btnDutyStop['state']		= tk.DISABLED	#
+	btnDutyBrake['state']		= tk.DISABLED	#
+	btnDutyStandby['state']		= tk.DISABLED	#
+
 	btnScale['state']			= tk.DISABLED	# 
 	btnScaleZero['state']		= tk.DISABLED	# 
 	btnAmeter['state']			= tk.DISABLED	# 
@@ -518,6 +555,25 @@ def WaitSecond():
 
 ########################################
 #
+def getScaleVakue():
+	global g_serial
+	global txtRecive
+
+	bError = True
+	while (bError == True):
+		g_serial.write("scale\r\n".encode('shift-jis'))
+		sleep(0.1)
+		txtRcv = g_serial.readline()
+		txtRecive.insert(tk.END,txtRcv.decode('ascii'))
+		text = txtRcv[:-2]
+		text = str(text, 'utf-8')
+		if (text != '-nan'):
+			bError = False
+
+	return text
+
+########################################
+#
 def PostProcess():
 	global g_serial
 	global g_DacValue
@@ -559,12 +615,14 @@ def PostProcess():
 	txtCurrent['text'] = text
 
 	# scale value (load)
-	g_serial.write("scale\r\n".encode('shift-jis'))
-	sleep(0.1)
-	txtRcvScale = g_serial.readline()
+	scale = getScaleVakue()
+#	g_serial.write("scale\r\n".encode('shift-jis'))
+#	sleep(0.1)
+#	txtRcvScale = g_serial.readline()
 #	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
-	scale = txtRcvScale[:-2]
-	scale = str(scale, 'utf-8')
+#	scale = txtRcvScale[:-2]
+#	scale = str(scale, 'utf-8')
+
 	text = scale + ' g'
 	print(text)
 	txtScale['text'] = text
@@ -786,17 +844,62 @@ def DAC_clicked():
 
 ########################################
 #
-def SCALE_clicked():
+def PwmDuty_clicked():
 	global g_serial
-	global txtScale
-	global txtRecive
+	global cbPwmCh
+	global dutyValue
 
-	g_serial.write("scale\r\n".encode('shift-jis'))
+	ch			= cbPwmCh.get()
+	duty		= int(dutyValue.get())
+	pwm_text	= 'pwm ' + str(ch) + ' ' + str(duty) + '\r\n'
+	g_serial.write(pwm_text.encode('shift-jis'))
 	sleep(0.1)
 	txtRcv = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcv.decode('ascii'))
-	text = txtRcv[:-2]
-	text = str(text, 'utf-8')
+	text = pwm_text[:-2]
+	print(text)
+
+########################################
+#
+def PwmCw_clicked():
+	global g_serial
+
+	g_serial.write("pwm cw\r\n".encode('shift-jis'))
+
+########################################
+#
+def PwmCcw_clicked():
+	global g_serial
+
+	g_serial.write("pwm ccw\r\n".encode('shift-jis'))
+
+########################################
+#
+def PwmStop_clicked():
+	global g_serial
+
+	g_serial.write("pwm stop\r\n".encode('shift-jis'))
+
+########################################
+#
+def PwmBrake_clicked():
+	global g_serial
+
+	g_serial.write("pwm brake\r\n".encode('shift-jis'))
+
+########################################
+#
+def PwmStandby_clicked():
+	global g_serial
+
+	g_serial.write("pwm standby\r\n".encode('shift-jis'))
+
+########################################
+#
+def SCALE_clicked():
+	global txtScale
+
+	text = getScaleVakue()
+
 	text = text + ' g'
 	print(text)
 	txtScale['text'] = text
@@ -831,6 +934,15 @@ def selectMethod():
 	global cbDacCh
 	global dacValue
 
+	global cbPwmCh
+	global dutyValue
+	global btnDuty
+	global btnDutyCw
+	global btnDutyCcw
+	global btnDutyStop
+	global btnDutyBrake
+	global btnDutyStandby
+
 	global txtMvCenter
 	global txtLevel
 	global txtFreq
@@ -841,7 +953,6 @@ def selectMethod():
 	global txtMvFrom
 	global txtMvTo
 
-
 	idx = cbDacMethod.current()
 
 	# Loop not selected
@@ -851,6 +962,15 @@ def selectMethod():
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.NORMAL
 		dacValue['state']		= tk.NORMAL
+
+		cbPwmCh['state']		= tk.NORMAL		# 
+		dutyValue['state']		= tk.NORMAL		#
+		btnDuty['state']		= tk.NORMAL		#
+		btnDutyCw['state']		= tk.NORMAL		#
+		btnDutyCcw['state']		= tk.NORMAL		#
+		btnDutyStop['state']	= tk.NORMAL		#
+		btnDutyBrake['state']	= tk.NORMAL		#
+		btnDutyStandby['state']	= tk.NORMAL		#
 
 		txtMvCenter['state']	= tk.NORMAL
 		txtLevel['state']		= tk.NORMAL
@@ -875,6 +995,15 @@ def selectMethod():
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
+		cbPwmCh['state']		= tk.NORMAL
+		dutyValue['state']		= tk.DISABLED
+		btnDuty['state']		= tk.DISABLED
+		btnDutyCw['state']		= tk.DISABLED
+		btnDutyCcw['state']		= tk.DISABLED
+		btnDutyStop['state']	= tk.DISABLED
+		btnDutyBrake['state']	= tk.DISABLED
+		btnDutyStandby['state']	= tk.DISABLED
+
 		txtMvCenter['state']	= tk.DISABLED
 		txtLevel['state']		= tk.DISABLED
 		txtFreq['state']		= tk.DISABLED
@@ -898,6 +1027,15 @@ def selectMethod():
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
 
+		cbPwmCh['state']		= tk.NORMAL
+		dutyValue['state']		= tk.DISABLED
+		btnDuty['state']		= tk.DISABLED
+		btnDutyCw['state']		= tk.DISABLED
+		btnDutyCcw['state']		= tk.DISABLED
+		btnDutyStop['state']	= tk.DISABLED
+		btnDutyBrake['state']	= tk.DISABLED
+		btnDutyStandby['state']	= tk.DISABLED
+
 		txtMvCenter['state']	= tk.DISABLED
 		txtLevel['state']		= tk.NORMAL
 		txtFreq['state']		= tk.NORMAL
@@ -920,6 +1058,15 @@ def selectMethod():
 		cbDacCh['state']		= tk.NORMAL
 		btnDac['state']			= tk.DISABLED
 		dacValue['state']		= tk.DISABLED
+
+		cbPwmCh['state']		= tk.NORMAL
+		dutyValue['state']		= tk.DISABLED
+		btnDuty['state']		= tk.DISABLED
+		btnDutyCw['state']		= tk.DISABLED
+		btnDutyCcw['state']		= tk.DISABLED
+		btnDutyStop['state']	= tk.DISABLED
+		btnDutyBrake['state']	= tk.DISABLED
+		btnDutyStandby['state']	= tk.DISABLED
 
 		txtMvCenter['state']	= tk.DISABLED
 		txtLevel['state']		= tk.DISABLED
@@ -951,6 +1098,7 @@ def Sequence_clicked():
 	global txtRecive
 	global btnSequence
 	global btnStop
+	global cbPwmCh
 
 #	print(type(g_DataFileName))
 #	print(g_DataFileName)
@@ -972,6 +1120,8 @@ def Sequence_clicked():
 	btnDac['state']			= tk.DISABLED
 	dacValue['state']		= tk.DISABLED
 
+	cbPwmCh['state']		= tk.DISABLED
+
 	txtMvCenter['state']	= tk.DISABLED
 	txtLevel['state']		= tk.DISABLED
 	txtFreq['state']		= tk.DISABLED
@@ -987,8 +1137,8 @@ def Sequence_clicked():
 	txtDownTop['state']		= tk.DISABLED
 	txtDownBottom['state']	= tk.DISABLED
 
-	btnSequence['state'] = tk.DISABLED
-	btnStop['state'] = tk.NORMAL
+	btnSequence['state']	= tk.DISABLED
+	btnStop['state']		= tk.NORMAL
 	txtRecive.delete('1.0',tk.END)
 
 ########################################
@@ -999,6 +1149,7 @@ def Stop_clicked():
 	global btnSequence
 	global btnStop
 	global cbDacMethod
+	global cbPwmCh
 
 	g_loopFlg = 0
 	g_DataFileName = None
@@ -1009,8 +1160,9 @@ def Stop_clicked():
 
 	selectMethod()
 
-	btnSequence['state'] =  tk.NORMAL
-	btnStop['state'] = tk.DISABLED
+	btnSequence['state']	= tk.NORMAL
+	btnStop['state']		= tk.DISABLED
+	cbPwmCh['state']		= tk.NORMAL
 
 ########################################
 #
@@ -1074,9 +1226,9 @@ def DitherOn_clicked():
 
 	DitherOn()
 
-	btnDitherOn['state'] = tk.DISABLED		#
-	btnDitherReflect['state'] = tk.NORMAL	#
-	btnDitherOff['state'] = tk.NORMAL		#
+	btnDitherOn['state']		= tk.DISABLED	#
+	btnDitherReflect['state']	= tk.NORMAL		#
+	btnDitherOff['state']		= tk.NORMAL		#
 
 ########################################
 #
@@ -1152,13 +1304,21 @@ def main():
 	global txtUpTop
 	global txtDownTop
 	global txtDownBottom
+	global cbPwmCh
+	global dutyValue
+	global btnDuty
+	global btnDutyCw
+	global btnDutyCcw
+	global btnDutyStop
+	global btnDutyBrake
+	global btnDutyStandby
 
 	global txtRecive
 
 	########################################
 	#
 	g_root = tk.Tk()
-	g_root.geometry('434x450')
+	g_root.geometry('456x580')
 	g_root.title('Communicator Tool for Atom Shell')
 
 	row_idx = 0
@@ -1301,6 +1461,72 @@ def main():
 	row_idx += 1
 
 	########################################
+	# Pwm Ch
+	labelPwmCh = tk.Label(g_root, text = 'Pwm Ch : ')
+	labelPwmCh.grid(row = row_idx, column = 0, sticky = tk.E, pady = 10)
+
+	cbPwmCh = ttk.Combobox(g_root, width = 1, value = PwmChText, state = tk.DISABLED)
+	cbPwmCh.set(PwmChText[2])
+	cbPwmCh.grid(row = row_idx, column = 1, sticky = tk.W)
+
+	########################################
+	# Pwm Duty
+	label_duty = tk.Label(g_root, text = 'Pwm Duty(0 - 255) : ')
+	label_duty.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	dutyValue = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	dutyValue.delete(0, tk.END)
+	dutyValue.insert(tk.END, '0')
+	dutyValue.grid(row = row_idx, column = 3, sticky = tk.W)
+	dutyValue['state'] = tk.DISABLED
+
+	########################################
+	# Pwm Duty button
+	btnDuty = tk.Button(master = g_root, text = 'Duty', command = PwmDuty_clicked, state = tk.DISABLED, width = 10)
+	btnDuty.grid(row = row_idx, column = 4, pady = 3)
+
+	row_idx += 1
+
+	########################################
+	#
+	border3 = ttk.Separator(g_root, orient = 'horizontal')
+	border3.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	row_idx += 1
+
+	########################################
+	# CW Duty button
+	btnDutyCw = tk.Button(master = g_root, text = 'CW', command = PwmCw_clicked, state = tk.DISABLED, width = 10)
+	btnDutyCw.grid(row = row_idx, column = 0, pady = 3)
+
+	########################################
+	# CCW Duty button
+	btnDutyCcw = tk.Button(master = g_root, text = 'CCW', command = PwmCcw_clicked, state = tk.DISABLED, width = 10)
+	btnDutyCcw.grid(row = row_idx, column = 1, pady = 3)
+
+	########################################
+	# STOP Duty button
+	btnDutyStop = tk.Button(master = g_root, text = 'STOP', command = PwmStop_clicked, state = tk.DISABLED, width = 10)
+	btnDutyStop.grid(row = row_idx, column = 2, pady = 3)
+
+	########################################
+	# BRAKE Duty button
+	btnDutyBrake = tk.Button(master = g_root, text = 'BRAKE', command = PwmBrake_clicked, state = tk.DISABLED, width = 10)
+	btnDutyBrake.grid(row = row_idx, column = 3, pady = 3)
+
+	########################################
+	# STANDBY Duty button
+	btnDutyStandby = tk.Button(master = g_root, text = 'STANDVY', command = PwmStandby_clicked, state = tk.DISABLED, width = 10)
+	btnDutyStandby.grid(row = row_idx, column = 4, pady = 3)
+
+	row_idx += 1
+
+	########################################
+	#
+	border4 = ttk.Separator(g_root, orient = 'horizontal')
+	border4.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	row_idx += 1
+
+	########################################
 	# mV Center
 	labelMvCenter = tk.Label(g_root, text = 'mV (center) : ')
 	labelMvCenter.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
@@ -1402,8 +1628,8 @@ def main():
 
 	########################################
 	#
-	border3 = ttk.Separator(g_root, orient = 'horizontal')
-	border3.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	border5 = ttk.Separator(g_root, orient = 'horizontal')
+	border5.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
 	row_idx += 1
 
 	########################################
@@ -1466,8 +1692,8 @@ def main():
 
 	########################################
 	#
-	border4 = ttk.Separator(g_root, orient = 'horizontal')
-	border4.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	border6 = ttk.Separator(g_root, orient = 'horizontal')
+	border6.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
 	row_idx += 1
 
 	########################################
