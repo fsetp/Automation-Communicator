@@ -239,8 +239,6 @@ def Open_clicked():
 	global cbDevBaud
 	global txtRecive
 
-	EnableWidget()
-
 	try:
 		com = 'COM' + cbDevCom.get()
 		baud = int(cbDevBaud.get())
@@ -251,6 +249,16 @@ def Open_clicked():
 		txtRecive.delete('1.0',tk.END)
 		txtRecive.insert(tk.END,'Connected\r\n')
 		g_bOpen = True
+
+		for i in range(50):
+			sleep(0.1)
+			txtRcv = g_serial.readline()
+			if(len(txtRcv) == 0):
+				break
+			text = txtRcv[:-2]
+			print(text)
+
+		EnableWidget()
 
 	except:
 		print('connecting error.')
