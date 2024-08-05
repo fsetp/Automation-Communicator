@@ -17,9 +17,37 @@ from tkinter import ttk
 ########################################
 #
 g_serial		= None
-g_loopFlg		= 0
 g_DataFileName	= None
 g_bOpen			= False
+
+g_bLoopFlg		= False
+
+########################################
+#	pre-process
+#	wait second
+#	post-process
+#
+g_IntervalMs	= int(100)	# 100 ms
+g_WaitMs		= 0
+g_WaitItvMs		= 0
+g_LoopDir		= True		# true:increase
+g_LoopValue		= 0
+
+g_From			= 0
+g_To			= 0
+g_Step			= 0
+g_Times			= 0
+
+g_DitherCh		= 0
+g_DitherLevel	= 0
+g_DitherHz		= 0
+
+g_nLoopTimes	= 0
+g_nLoopIndex	= 0
+g_nRemainSec	= 0
+
+g_FourPoints	= None
+g_FourPointsIdx	= 0
 
 ########################################
 #
@@ -27,12 +55,14 @@ ComChText	= ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 BaudText	= ['9600', '115200']
 DacChText	= ['0', '1']
 PwmChText	= ['0', '1', '2']
+PwmMoveText	= ['CW', 'CCW', 'STOP', 'BRAKE', 'STAND BY']
 
-MethodText	= ['-', 'Normal', 'Dither', '4 points']		# cbDacMethod
+MethodText	= ['-', 'Normal Dac', 'Dither Dac', '4 points', 'PWM Dac']		# cbDacMethod
 METHOD_NONE		= 0
 METHOD_NORMAL	= 1
 METHOD_DITHER	= 2
 METHOD_4POINTS	= 3
+METHOD_PWM		= 4
 
 ########################################
 # widget globals
@@ -75,6 +105,26 @@ def dac_command_text(ch, value):
 
 ########################################
 #
+def SetDacValue(ch, value):
+	global g_serial
+
+	dac_text = dac_command_text(ch, value) + '\r\n'
+	g_serial.write(dac_text.encode('shift-jis'))
+	text = dac_text[:-2]
+	print(text)
+
+########################################
+#
+def SetPwmValue(ch, duty):
+	global g_serial
+
+	pwm_text	= 'pwm ' + str(ch) + ' ' + str(duty) + '\r\n'
+	g_serial.write(pwm_text.encode('shift-jis'))
+	text = pwm_text[:-2]
+	print(text)
+
+########################################
+#
 def EnableWidget():
 	global btnOpen
 	global btnClose
@@ -110,6 +160,10 @@ def EnableWidget():
 	global btnDutyStop
 	global btnDutyBrake
 	global btnDutyStandby
+	global txtPwmStep
+	global cbPwmMove
+	global txtPwmFrom
+	global txtPwmTo
 
 	btnOpen['state']			= tk.DISABLED	# Open
 	btnClose['state']			= tk.NORMAL		# Close
@@ -150,6 +204,10 @@ def EnableWidget():
 	txtUpTop['state']			= tk.DISABLED	#
 	txtDownTop['state']			= tk.DISABLED	#
 	txtDownBottom['state']		= tk.DISABLED	#
+	txtPwmStep['state']			= tk.DISABLED	#
+	cbPwmMove['state']			= tk.DISABLED	#
+	txtPwmFrom['state']			= tk.DISABLED	#
+	txtPwmTo['state']			= tk.DISABLED	#
 	txtRecive['state']			= tk.NORMAL		#
 
 ########################################
@@ -188,6 +246,10 @@ def DisableWidget():
 	global btnDutyStop
 	global btnDutyBrake
 	global btnDutyStandby
+	global txtPwmStep
+	global cbPwmMove
+	global txtPwmFrom
+	global txtPwmTo
 
 	btnOpen['state']			= tk.NORMAL		# Open
 	btnClose['state']			= tk.DISABLED	# Close
@@ -228,6 +290,10 @@ def DisableWidget():
 	txtUpTop['state']			= tk.DISABLED	#
 	txtDownTop['state']			= tk.DISABLED	#
 	txtDownBottom['state']		= tk.DISABLED	#
+	txtPwmStep['state']			= tk.DISABLED	#
+	cbPwmMove['state']			= tk.DISABLED	#
+	txtPwmFrom['state']			= tk.DISABLED	#
+	txtPwmTo['state']			= tk.DISABLED	#
 	txtRecive['state']			= tk.DISABLED	#
 
 ########################################
@@ -335,6 +401,10 @@ def File_clicked():
 	elif (cbDacMethod.current() == METHOD_4POINTS):
 		iniFile = 'fourpoints_' + timetext + '.csv'
 
+	# pwm selected
+	elif (cbDacMethod.current() == METHOD_PWM):
+		iniFile = 'pwm_' + timetext + '.csv'
+
 	#
 	file_name = tk.filedialog.asksaveasfilename(filetypes = fTyp, initialdir = iniDir, initialfile = iniFile, defaultextension = 'csv')
 	g_DataFileName = file_name
@@ -344,48 +414,22 @@ def File_clicked():
 		writeCsvData('Time', 'Index', 'Dac', 'Current', 'Load')
 
 ########################################
-#	pre-process
-#	wait second
-#	post-process
-#
-g_IntervalMs	= int(100)	# 100 ms
-g_WaitMs		= 0
-g_WaitItvMs		= 0
-g_DacValue		= 0
-g_DacDir		= True		# true:increase
-
-g_DitherCh		= 0
-g_DitherLevel	= 0
-g_DitherHz		= 0
-
-g_nLoopTimes	= 0
-g_nLoopIndex	= 0
-g_nRemainSec	= 0
-
-g_FourPoints	= None
-g_FourPointsIdx	= 0
-
-########################################
-#
-def SetDacValue(ch, value):
-	global g_serial
-
-	dac_text = dac_command_text(ch, value) + '\r\n'
-	g_serial.write(dac_text.encode('shift-jis'))
-	text = dac_text[:-2]
-	print(text)
-
-########################################
 #
 def InitProcess():
-	global g_DacValue
+	global g_From
+	global g_To
+	global g_Step
+	global g_Times
 	global g_WaitMs
-	global g_DacDir
 
+	global g_LoopCh
+	global g_LoopDir
+	global g_LoopValue
 	global g_DitherCh
 	global g_DitherLevel
 	global g_DitherHz
 	global cbDacCh
+	global cbPwmCh
 	global cbDacMethod
 	global txtMvCenter
 	global txtLevel
@@ -413,10 +457,10 @@ def InitProcess():
 	print('Init')
 
 	#
-	nFrom  = int(txtMvFrom.get())
-	nTo    = int(txtMvTo.get())
-	nStep  = int(txtMvStep.get())
-	nTimes = 0
+	g_From  = 0
+	g_To    = 0
+	g_Step  = 0
+	g_Times = 0
 
 	# loop times
 	g_nLoopIndex = 0
@@ -430,30 +474,42 @@ def InitProcess():
 
 	# if normal selected
 	elif (cbDacMethod.current() == METHOD_NORMAL):
-		g_DacDir	= True;
-		g_DacValue	= int(txtMvFrom.get())
+		g_From  = int(txtMvFrom.get())
+		g_To    = int(txtMvTo.get())
+		g_Step  = int(txtMvStep.get())
+		g_Times = 0
+
+		g_LoopCh	= int(cbDacCh.get())
+		g_LoopDir	= True
+		g_LoopValue	= g_From
 		g_WaitMs	= int(txtWaitMs.get())
 
-		if (nStep > 0):
-			nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+		if (g_Step > 0):
+			g_Times = int(((g_To - g_From) / g_Step) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
 		else:
-			nTimes = g_nLoopTimes
+			g_Times = g_nLoopTimes
 
 	# if dither selected
 	elif (cbDacMethod.current() == METHOD_DITHER):
-		g_DacDir		= True;
-		g_DacValue		= int(txtMvFrom.get())
+		g_From  = int(txtMvFrom.get())
+		g_To    = int(txtMvTo.get())
+		g_Step  = int(txtMvStep.get())
+		g_Times = 0
+
+		g_LoopCh		= int(cbDacCh.get())
+		g_LoopDir		= True
+		g_LoopValue		= g_From
 		g_WaitMs		= int(txtWaitMs.get())
 		g_DitherCh		= int(cbDacCh.get())
 		g_DitherLevel	= int(txtLevel.get())
 		g_DitherHz		= int(txtFreq.get())
 
-		if (nStep > 0):
-			nTimes = int(((nTo - nFrom) / nStep) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+		if (g_Step > 0):
+			g_Times = int(((g_To - g_From) / g_Step) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
 		else:
-			nTimes = g_nLoopTimes
+			g_Times = g_nLoopTimes
 
-		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
+		DitherReflect(g_LoopCh, g_LoopValue, g_DitherLevel, g_DitherHz)
 		DitherOn()
 
 	# if 4 points selected
@@ -464,14 +520,31 @@ def InitProcess():
 		pt4 = int(txtDownTop.get())
 		g_FourPoints = [pt1, pt2, pt3, pt4]
 		g_FourPointsIdx = 0		# 0 to len(g_FourPoints) - 1
-		g_DacValue		= g_FourPoints[g_FourPointsIdx]
+		g_LoopValue		= g_FourPoints[g_FourPointsIdx]
 		g_WaitMs		= int(txtWaitMs.get())
 
-		nTimes = g_nLoopTimes * len(g_FourPoints)
+		g_Times = g_nLoopTimes * len(g_FourPoints)
+
+	# if pwm selected
+	elif (cbDacMethod.current() == METHOD_PWM):
+		g_From  = int(txtPWmFrom.get())
+		g_To    = int(txtPWmTo.get())
+		g_Step  = int(txtPwmStep.get())
+		g_Times = 0
+
+		g_LoopCh	= int(cbPwmCh.get())
+		g_LoopDir	= True
+		g_LoopValue	= g_From
+		g_WaitMs	= int(txtWaitMs.get())
+
+		if (g_Step > 0):
+			g_Times = int(((g_To - g_From) / g_Step) * 2 * g_nLoopTimes + g_nLoopTimes)	# rising and falling
+		else:
+			g_Times = g_nLoopTimes
 
 	#
-	nTotalWaitMs = int(nTimes * g_WaitMs)
-	text = 'Times : ' + str(nTimes) + '\r\n'
+	nTotalWaitMs = int(g_Times * g_WaitMs)
+	text = 'Times : ' + str(g_Times) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
 	text = 'Total Sec : ' + str(int(nTotalWaitMs / 1000)) + '\r\n'
 	txtRecive.insert(tk.END,text.encode('ascii'))
@@ -489,8 +562,8 @@ def PreProcess():
 	global g_IntervalMs
 	global g_WaitItvMs
 	global g_WaitMs
-	global g_DacValue
-	global cbDacCh
+	global g_LoopCh
+	global g_LoopValue
 	global txtRecive
 	global txtRemainSec
 	global cbDacMethod
@@ -518,21 +591,26 @@ def PreProcess():
 
 		# set value
 		#
-		DacCh = cbDacCh.get()
-		SetDacValue(DacCh, g_DacValue)
+		SetDacValue(g_LoopCh, g_LoopValue)
 
 	# if dither selected
 	elif (cbDacMethod.current() == METHOD_DITHER):
 
-		DitherReflect(g_DitherCh, g_DacValue, g_DitherLevel, g_DitherHz)
+		DitherReflect(g_LoopCh, g_LoopValue, g_DitherLevel, g_DitherHz)
 
 	# if 4 points selected
 	elif (cbDacMethod.current() == METHOD_4POINTS):
 
 		# set value
 		#
-		DacCh = cbDacCh.get()
-		SetDacValue(DacCh, g_DacValue)
+		SetDacValue(g_LoopCh, g_LoopValue)
+
+	# if pwm selected
+	elif (cbDacMethod.current() == METHOD_PWM):
+
+		# set value
+		#
+		SetPwmValue(g_LoopCh, g_PwmValue)
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
@@ -584,9 +662,17 @@ def getScaleVakue():
 #
 def PostProcess():
 	global g_serial
-	global g_DacValue
-	global g_DacDir
-	global g_loopFlg
+
+	global g_From
+	global g_To
+	global g_Step
+	global g_Times
+	global g_WaitMs
+
+	global g_LoopCh
+	global g_LoopDir
+	global g_LoopValue
+	global g_bLoopFlg
 	global g_DataFileName
 	global cbDacCh
 	global cbDacMethod
@@ -615,7 +701,6 @@ def PostProcess():
 	g_serial.write("current\r\n".encode('shift-jis'))
 	sleep(0.1)
 	txtRcvCurrent = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcvCurrent.decode('ascii'))
 	current = txtRcvCurrent[:-2]
 	current = str(current, 'utf-8')
 	text = current + ' mV'
@@ -624,39 +709,30 @@ def PostProcess():
 
 	# scale value (load)
 	scale = getScaleVakue()
-#	g_serial.write("scale\r\n".encode('shift-jis'))
-#	sleep(0.1)
-#	txtRcvScale = g_serial.readline()
-#	txtRecive.insert(tk.END,txtRcvScale.decode('ascii'))
-#	scale = txtRcvScale[:-2]
-#	scale = str(scale, 'utf-8')
 
 	text = scale + ' g'
 	print(text)
 	txtScale['text'] = text
 
-#	txtRecive.see('end')
-
 	# save to csv
-	writeCsvData(csvtimetext, g_nLoopIndex, g_DacValue, float(current), float(scale))
+	writeCsvData(csvtimetext, g_nLoopIndex, g_LoopValue, float(current), float(scale))
 
 	# if none selected
 	if (cbDacMethod.current() == METHOD_NONE):
 		pass
 
 	# if normal or dither selected
-	elif (cbDacMethod.current() == METHOD_NORMAL or cbDacMethod.current() == METHOD_DITHER):
+	elif (cbDacMethod.current() == METHOD_NORMAL or cbDacMethod.current() == METHOD_DITHER or METHOD_PWM):
 
 		# not increase
-		nStep  = int(txtMvStep.get())
-		if (nStep == 0):
+		if (g_Step == 0):
 			g_nLoopTimes -= 1
 
 			# loop final
 			if (g_nLoopTimes == 0):
 
 				# loop end, clear file mame
-				g_loopFlg		= 0
+				g_bLoopFlg		= False
 				g_DataFileName	= None
 
 				# Remain sec
@@ -667,12 +743,16 @@ def PostProcess():
 
 				# if normal selected
 				if (cbDacMethod.current() == METHOD_NORMAL):
-					DacCh = cbDacCh.get()
-					SetDacValue(DacCh, 0)
+					SetDacValue(g_LoopCh, 0)
 
 				# if dither selected
 				elif (cbDacMethod.current() == METHOD_DITHER):
 					DitherOff()
+
+				# if pwm selected
+				elif (cbDacMethod.current() == METHOD_PWM):
+					SetPwmValue(g_LoopCh, 0)
+					# STOP Action needed
 
 				#
 				selectMethod()
@@ -682,34 +762,32 @@ def PostProcess():
 				g_nLoopIndex += 1
 
 		# rise up
-		elif (g_DacDir):
+		elif (g_LoopDir):
 			# under 'To' value
-			nTo = int(txtMvTo.get())
-			if (g_DacValue < nTo):
+			if (g_LoopValue < g_To):
 
 				# increment dac value
-				g_DacValue += int(txtMvStep.get())
-				print('dac : ' + str(g_DacValue) + ' mV')
+				g_LoopValue += g_Step
+				print('value : ' + str(g_LoopValue) + ' mV')
 
 				# arrive at top
-				if (g_DacValue == nTo):
-					if (g_DacDir):
-						g_DacDir = False
+				if (g_LoopValue == g_To):
+					if (g_LoopDir):
+						g_LoopDir = False
 
 			# reach at top
 			else:
-				if (g_DacDir):
-					g_DacDir = False
+				if (g_LoopDir):
+					g_LoopDir = False
 
 		# fall down
 		else:
 			# over 'From' value (still continue loop)
-			nFrom = int(txtMvFrom.get())
-			if (g_DacValue > nFrom):
+			if (g_LoopValue > g_From):
 
 				# decrement dac value
-				g_DacValue -= int(txtMvStep.get())
-				print('dac : ' + str(g_DacValue) + ' mV')
+				g_LoopValue -= g_Step
+				print('value : ' + str(g_LoopValue) + ' mV')
 
 			# reach at 'From' value (loop end)
 			else:
@@ -719,7 +797,7 @@ def PostProcess():
 				if (g_nLoopTimes == 0):
 
 					# loop end, clear file mame
-					g_loopFlg		= 0
+					g_bLoopFlg		= False
 					g_DataFileName	= None
 
 					# Remain sec
@@ -730,20 +808,24 @@ def PostProcess():
 
 					# if normal selected
 					if (cbDacMethod.current() == METHOD_NORMAL):
-						DacCh = cbDacCh.get()
-						SetDacValue(DacCh, 0)
+						SetDacValue(g_LoopCh, 0)
 
 					# if dither selected
 					elif (cbDacMethod.current() == METHOD_DITHER):
 						DitherOff()
+
+					# if pwm selected
+					elif (cbDacMethod.current() == METHOD_PWM):
+						SetPwmValue(g_LoopCh, 0)
+						# STOP Action needed
 
 					#
 					selectMethod()
 
 				# loop continue (start from loop top)
 				else:
-					g_DacDir	= True;
-					g_DacValue	= int(txtMvFrom.get())
+					g_LoopDir	= True;
+					g_LoopValue	= int(txtMvFrom.get())
 					g_nLoopIndex += 1
 
 	# if 4 points selected
@@ -758,11 +840,10 @@ def PostProcess():
 			if (g_nLoopTimes == 0):
 
 				# loop end, clear file mame
-				g_loopFlg		= 0
+				g_bLoopFlg		= False
 				g_DataFileName	= None
 
-				DacCh = cbDacCh.get()
-				SetDacValue(DacCh, 0)
+				SetDacValue(g_LoopCh, 0)
 
 				# Remain sec
 				text = str(g_nRemainSec) + ' sec'
@@ -773,9 +854,115 @@ def PostProcess():
 				selectMethod()
 
 		# set next dac
-		g_DacValue = g_FourPoints[g_FourPointsIdx]
+		g_LoopValue = g_FourPoints[g_FourPointsIdx]
 
-		pass
+
+	# if normal or dither selected
+	elif (cbDacMethod.current() == METHOD_NORMAL or cbDacMethod.current() == METHOD_DITHER):
+
+		# not increase
+		if (g_Step == 0):
+			g_nLoopTimes -= 1
+
+			# loop final
+			if (g_nLoopTimes == 0):
+
+				# loop end, clear file mame
+				g_bLoopFlg		= False
+				g_DataFileName	= None
+
+				# Remain sec
+				text = str(g_nRemainSec) + ' sec'
+				txtRemainSec['text'] = text
+
+				print(text + '\r\n')
+
+				# if normal selected
+				if (cbDacMethod.current() == METHOD_NORMAL):
+					SetDacValue(g_LoopCh, 0)
+
+				# if dither selected
+				elif (cbDacMethod.current() == METHOD_DITHER):
+					DitherOff()
+
+				# if pwm selected
+				elif (cbDacMethod.current() == METHOD_PWM):
+					SetPwmValue(g_LoopCh, 0)
+					# STOP Action needed
+
+				#
+				selectMethod()
+
+			# loop continue (start from loop top)
+			else:
+				g_nLoopIndex += 1
+
+		# rise up
+		elif (g_LoopDir):
+			# under 'To' value
+			if (g_LoopValue < g_To):
+
+				# increment dac value
+				g_LoopValue += g_Step
+				print('value : ' + str(g_LoopValue) + ' mV')
+
+				# arrive at top
+				if (g_LoopValue == g_To):
+					if (g_LoopDir):
+						g_LoopDir = False
+
+			# reach at top
+			else:
+				if (g_LoopDir):
+					g_LoopDir = False
+
+		# fall down
+		else:
+			# over 'From' value (still continue loop)
+			if (g_LoopValue > g_From):
+
+				# decrement dac value
+				g_LoopValue -= g_Step
+				print('value : ' + str(g_LoopValue) + ' mV')
+
+			# reach at 'From' value (loop end)
+			else:
+				g_nLoopTimes -= 1
+
+				# loop final
+				if (g_nLoopTimes == 0):
+
+					# loop end, clear file mame
+					g_bLoopFlg		= False
+					g_DataFileName	= None
+
+					# Remain sec
+					text = str(g_nRemainSec) + ' sec'
+					txtRemainSec['text'] = text
+
+					print(text + '\r\n')
+
+					# if normal selected
+					if (cbDacMethod.current() == METHOD_NORMAL):
+						SetDacValue(g_LoopCh, 0)
+
+					# if dither selected
+					elif (cbDacMethod.current() == METHOD_DITHER):
+						DitherOff()
+
+					# if pwm selected
+					elif (cbDacMethod.current() == METHOD_PWM):
+						SetPwmValue(g_LoopCh, 0)
+						# STOP Action needed
+
+					#
+					selectMethod()
+
+				# loop continue (start from loop top)
+				else:
+					g_LoopDir	= True
+					g_LoopValue	= g_From
+					g_nLoopIndex += 1
 
 	return True
 
@@ -787,10 +974,9 @@ g_idxFunc = 0
 ########################################
 #
 def interval_work():
-	global g_loopFlg
+	global g_bLoopFlg
 	global g_idxFunc
 	global g_serial
-	global g_DacValue
 	global g_root
 	global btnSequence
 	global btnStop
@@ -803,7 +989,7 @@ def interval_work():
 		if (g_idxFunc >= len(ItvFuncList)):
 			g_idxFunc = 0
 
-	if (g_loopFlg == 1):
+	if (g_bLoopFlg == True):
 		g_root.after(g_IntervalMs, interval_work)
 
 	else:
@@ -859,12 +1045,8 @@ def PwmDuty_clicked():
 
 	ch			= cbPwmCh.get()
 	duty		= int(dutyValue.get())
-	pwm_text	= 'pwm ' + str(ch) + ' ' + str(duty) + '\r\n'
-	g_serial.write(pwm_text.encode('shift-jis'))
-	sleep(0.1)
-	txtRcv = g_serial.readline()
-	text = pwm_text[:-2]
-	print(text)
+
+	SetPwmValue(ch, duty)
 
 ########################################
 #
@@ -872,6 +1054,7 @@ def PwmCw_clicked():
 	global g_serial
 
 	g_serial.write("pwm cw\r\n".encode('shift-jis'))
+	print('pwm cw')
 
 ########################################
 #
@@ -879,6 +1062,7 @@ def PwmCcw_clicked():
 	global g_serial
 
 	g_serial.write("pwm ccw\r\n".encode('shift-jis'))
+	print('pwm ccw')
 
 ########################################
 #
@@ -886,6 +1070,7 @@ def PwmStop_clicked():
 	global g_serial
 
 	g_serial.write("pwm stop\r\n".encode('shift-jis'))
+	print('pwm stop')
 
 ########################################
 #
@@ -893,6 +1078,7 @@ def PwmBrake_clicked():
 	global g_serial
 
 	g_serial.write("pwm brake\r\n".encode('shift-jis'))
+	print('pwm brake')
 
 ########################################
 #
@@ -900,6 +1086,7 @@ def PwmStandby_clicked():
 	global g_serial
 
 	g_serial.write("pwm standby\r\n".encode('shift-jis'))
+	print('pwm standby')
 
 ########################################
 #
@@ -960,6 +1147,10 @@ def selectMethod():
 	global txtWaitMs
 	global txtMvFrom
 	global txtMvTo
+	global txtPwmStep
+	global cbPwmMove
+	global txtPwmFrom
+	global txtPwmTo
 
 	idx = cbDacMethod.current()
 
@@ -994,6 +1185,10 @@ def selectMethod():
 		txtUpTop['state']		= tk.DISABLED	#
 		txtDownTop['state']		= tk.DISABLED	#
 		txtDownBottom['state']	= tk.DISABLED	#
+		txtPwmStep['state']		= tk.DISABLED
+		cbPwmMove['state']		= tk.DISABLED
+		txtPwmFrom['state']		= tk.DISABLED
+		txtPwmTo['state']		= tk.DISABLED
 
 	# Normal loop selected
 	elif (idx == METHOD_NORMAL):
@@ -1026,6 +1221,10 @@ def selectMethod():
 		txtUpTop['state']		= tk.DISABLED
 		txtDownTop['state']		= tk.DISABLED
 		txtDownBottom['state']	= tk.DISABLED
+		txtPwmStep['state']		= tk.DISABLED
+		cbPwmMove['state']		= tk.DISABLED
+		txtPwmFrom['state']		= tk.DISABLED
+		txtPwmTo['state']		= tk.DISABLED
 
 	# dither loop selected
 	elif (idx == METHOD_DITHER):
@@ -1058,6 +1257,10 @@ def selectMethod():
 		txtUpTop['state']		= tk.DISABLED
 		txtDownTop['state']		= tk.DISABLED
 		txtDownBottom['state']	= tk.DISABLED
+		txtPwmStep['state']		= tk.DISABLED
+		cbPwmMove['state']		= tk.DISABLED
+		txtPwmFrom['state']		= tk.DISABLED
+		txtPwmTo['state']		= tk.DISABLED
 
 	# 4 points loop selected
 	elif (idx == METHOD_4POINTS):
@@ -1090,6 +1293,46 @@ def selectMethod():
 		txtUpTop['state']		= tk.NORMAL
 		txtDownTop['state']		= tk.NORMAL
 		txtDownBottom['state']	= tk.NORMAL
+		txtPwmStep['state']		= tk.DISABLED
+		cbPwmMove['state']		= tk.DISABLED
+		txtPwmFrom['state']		= tk.DISABLED
+		txtPwmTo['state']		= tk.DISABLED
+
+	# pwm loop selected
+	elif (idx == METHOD_PWM):
+		cbDacMethod['state']	= tk.NORMAL
+		cbDacCh['state']		= tk.NORMAL
+		btnDac['state']			= tk.DISABLED
+		dacValue['state']		= tk.DISABLED
+
+		cbPwmCh['state']		= tk.NORMAL
+		dutyValue['state']		= tk.DISABLED
+		btnDuty['state']		= tk.DISABLED
+		btnDutyCw['state']		= tk.DISABLED
+		btnDutyCcw['state']		= tk.DISABLED
+		btnDutyStop['state']	= tk.DISABLED
+		btnDutyBrake['state']	= tk.DISABLED
+		btnDutyStandby['state']	= tk.DISABLED
+
+		txtMvCenter['state']	= tk.DISABLED
+		txtLevel['state']		= tk.DISABLED
+		txtFreq['state']		= tk.DISABLED
+
+		txtMvStep['state']		= tk.DISABLED
+		btnSequence['state']	= tk.NORMAL
+		txtWaitMs['state']		= tk.NORMAL
+		txtMvFrom['state']		= tk.DISABLED
+		txtMvTo['state']		= tk.DISABLED
+		txtLoopTimes['state']	= tk.NORMAL
+		txtUpBottom['state']	= tk.DISABLED
+		txtUpTop['state']		= tk.DISABLED
+		txtDownTop['state']		= tk.DISABLED
+		txtDownBottom['state']	= tk.DISABLED
+		txtPwmStep['state']		= tk.NORMAL
+		cbPwmMove['state']		= 'readonly'
+		txtPwmFrom['state']		= tk.NORMAL
+		txtPwmTo['state']		= tk.NORMAL
+		pass
 
 ########################################
 # Combobox Selected
@@ -1101,7 +1344,7 @@ def select_combo(event):
 ########################################
 #
 def Sequence_clicked():
-	global g_loopFlg
+	global g_bLoopFlg
 	global g_DataFileName
 	global txtRecive
 	global btnSequence
@@ -1120,7 +1363,7 @@ def Sequence_clicked():
 
 	InitProcess()
 
-	g_loopFlg = 1 
+	g_bLoopFlg = True
 	interval_work()
 
 	cbDacMethod['state']	= tk.DISABLED
@@ -1152,15 +1395,15 @@ def Sequence_clicked():
 ########################################
 #
 def Stop_clicked():
-	global g_loopFlg
+	global g_bLoopFlg
 	global g_DataFileName
 	global btnSequence
 	global btnStop
 	global cbDacMethod
 	global cbPwmCh
 
-	g_loopFlg = 0
-	g_DataFileName = None
+	g_bLoopFlg		= False
+	g_DataFileName	= None
 
 	# if dither selected
 	if (cbDacMethod.current() == METHOD_DITHER):
@@ -1320,6 +1563,10 @@ def main():
 	global btnDutyStop
 	global btnDutyBrake
 	global btnDutyStandby
+	global txtPwmStep
+	global cbPwmMove
+	global txtPwmFrom
+	global txtPwmTo
 
 	global txtRecive
 
@@ -1341,7 +1588,7 @@ def main():
 	cbDevCom.current(4)
 	cbDevCom.grid(row = row_idx, column = 1, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# baud rate
 	labelBaud = tk.Label(g_root, text = ' Baud : ')
 	labelBaud.grid(row = row_idx, column = 2, padx = 2, pady = 3)#, sticky = tk.E)
@@ -1351,27 +1598,28 @@ def main():
 	cbDevBaud.grid(row = row_idx, column = 3, padx = 2, pady = 3 )
 
 	row_idx += 1
-	########################################
+
+	#---------------------------------------
 	# Open
 	btnOpen = tk.Button(master = g_root, text = 'Open', command = Open_clicked, width = 10)
 	btnOpen.grid(row = row_idx, column = 0, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# Close
 	btnClose = tk.Button(master = g_root, text = 'Close', command = Close_clicked, state = tk.DISABLED, width = 10)
 	btnClose.grid(row = row_idx, column = 1, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# File
 	btnFile = tk.Button(master = g_root, text = 'File', command = File_clicked, state = tk.NORMAL, width = 10)
 	btnFile.grid(row = row_idx, column = 2, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# Init
 	btnInit = tk.Button(master = g_root, text = 'Init', command = Init_clicked, state = tk.DISABLED, width = 10)
 	btnInit.grid(row = row_idx, column = 3, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# Exit
 	btnExit = tk.Button(master=g_root, text='Exit' , command = Exit_clicked, width = 10)
 	btnExit.grid(row = row_idx, column = 4, padx = 2, pady = 3)
@@ -1389,17 +1637,17 @@ def main():
 	btnScale = tk.Button(master = g_root, text = 'SCALE', command = SCALE_clicked, state = tk.DISABLED, width = 10)
 	btnScale.grid(row = row_idx, column = 0, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# scale zero
 	btnScaleZero = tk.Button(master = g_root, text = 'ZERO', command = ZERO_clicked, state = tk.DISABLED, width = 10)
 	btnScaleZero.grid(row = row_idx, column = 1, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# ameter
 	btnAmeter = tk.Button(master = g_root, text = 'CURRENT', command = AMETER_clicked, state = tk.DISABLED, width = 10)
 	btnAmeter.grid(row = row_idx, column = 2, padx = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# Dac Method
 	labelMethod = tk.Label(g_root, text = 'Method : ')
 	labelMethod.grid(row = row_idx, column = 3, sticky = tk.E, pady = 3)
@@ -1408,24 +1656,6 @@ def main():
 	cbDacMethod.set(MethodText[0])
 	cbDacMethod.grid(row = row_idx, column = 4, sticky = tk.W)
 	cbDacMethod.bind('<<ComboboxSelected>>', select_combo)
-
-	row_idx += 1
-
-	########################################
-	# Scale
-	labelScale = tk.Label(g_root, text = 'Scale : ')
-	labelScale.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
-
-	txtScale = tk.Label(g_root, text = '0 g')
-	txtScale.grid(row = row_idx, column = 1, sticky = tk.W, pady = 3)
-
-	########################################
-	# Current
-	labelCurrent = tk.Label(g_root, text = 'Current : ')
-	labelCurrent.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
-
-	txtCurrent = tk.Label(g_root, text = '0 mA')
-	txtCurrent.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
 
 	row_idx += 1
 
@@ -1444,7 +1674,7 @@ def main():
 	cbDacCh.set(DacChText[0])
 	cbDacCh.grid(row = row_idx, column = 1, sticky = tk.W)
 
-	########################################
+	#---------------------------------------
 	# Dac Value
 	label_dac = tk.Label(g_root, text = 'Dac(mV) : ')
 	label_dac.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1455,7 +1685,7 @@ def main():
 	dacValue.grid(row = row_idx, column = 3, sticky = tk.W)
 	dacValue['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# DAC button
 	btnDac = tk.Button(master = g_root, text = 'DAC', command = DAC_clicked, state = tk.DISABLED, width = 10)
 	btnDac.grid(row = row_idx, column = 4, pady = 3)
@@ -1477,7 +1707,7 @@ def main():
 	cbPwmCh.set(PwmChText[2])
 	cbPwmCh.grid(row = row_idx, column = 1, sticky = tk.W)
 
-	########################################
+	#---------------------------------------
 	# Pwm Duty
 	label_duty = tk.Label(g_root, text = 'Pwm Duty(0 - 255) : ')
 	label_duty.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1488,7 +1718,7 @@ def main():
 	dutyValue.grid(row = row_idx, column = 3, sticky = tk.W)
 	dutyValue['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Pwm Duty button
 	btnDuty = tk.Button(master = g_root, text = 'Duty', command = PwmDuty_clicked, state = tk.DISABLED, width = 10)
 	btnDuty.grid(row = row_idx, column = 4, pady = 3)
@@ -1496,42 +1726,36 @@ def main():
 	row_idx += 1
 
 	########################################
-	#
-	border3 = ttk.Separator(g_root, orient = 'horizontal')
-	border3.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
-	row_idx += 1
-
-	########################################
 	# CW Duty button
 	btnDutyCw = tk.Button(master = g_root, text = 'CW', command = PwmCw_clicked, state = tk.DISABLED, width = 10)
 	btnDutyCw.grid(row = row_idx, column = 0, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# CCW Duty button
 	btnDutyCcw = tk.Button(master = g_root, text = 'CCW', command = PwmCcw_clicked, state = tk.DISABLED, width = 10)
 	btnDutyCcw.grid(row = row_idx, column = 1, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# STOP Duty button
 	btnDutyStop = tk.Button(master = g_root, text = 'STOP', command = PwmStop_clicked, state = tk.DISABLED, width = 10)
 	btnDutyStop.grid(row = row_idx, column = 2, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# BRAKE Duty button
 	btnDutyBrake = tk.Button(master = g_root, text = 'BRAKE', command = PwmBrake_clicked, state = tk.DISABLED, width = 10)
 	btnDutyBrake.grid(row = row_idx, column = 3, pady = 3)
 
-	########################################
+	#---------------------------------------
 	# STANDBY Duty button
-	btnDutyStandby = tk.Button(master = g_root, text = 'STANDVY', command = PwmStandby_clicked, state = tk.DISABLED, width = 10)
+	btnDutyStandby = tk.Button(master = g_root, text = 'STANDBY', command = PwmStandby_clicked, state = tk.DISABLED, width = 10)
 	btnDutyStandby.grid(row = row_idx, column = 4, pady = 3)
 
 	row_idx += 1
 
 	########################################
 	#
-	border4 = ttk.Separator(g_root, orient = 'horizontal')
-	border4.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	border3 = ttk.Separator(g_root, orient = 'horizontal')
+	border3.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
 	row_idx += 1
 
 	########################################
@@ -1545,13 +1769,13 @@ def main():
 	txtMvCenter.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtMvCenter['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Reflect
 	btnDitherReflect = tk.Button(master = g_root, text = 'Reflect', command = DitherReflect_clicked, state = tk.DISABLED, width = 10)
 	btnDitherReflect.grid(row = row_idx, column = 3, pady = 3)
 
-	########################################
-	#
+	#---------------------------------------
+	# Dither On
 	btnDitherOn = tk.Button(master = g_root, text = 'Dither On', command = DitherOn_clicked, state = tk.DISABLED, width = 10)
 	btnDitherOn.grid(row = row_idx, column = 4, pady = 3)
 
@@ -1568,7 +1792,7 @@ def main():
 	txtLevel.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtLevel['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Frequency
 	labelFreq = tk.Label(g_root, text = 'Frequency (Hz) : ')
 	labelFreq.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1579,11 +1803,17 @@ def main():
 	txtFreq.grid(row = row_idx, column = 3, sticky = tk.W)
 	txtFreq['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Dither Off
 	btnDitherOff = tk.Button(master = g_root, text = 'Dither Off', command = DitherOff_clicked, state = tk.DISABLED, width = 10)
 	btnDitherOff.grid(row = row_idx, column = 4, pady = 3)
 
+	row_idx += 1
+
+	########################################
+	#
+	border4 = ttk.Separator(g_root, orient = 'horizontal')
+	border4.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
 	row_idx += 1
 
 	########################################
@@ -1597,7 +1827,7 @@ def main():
 	txtDownTop.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtDownTop['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Up Top
 	labelUpTop = tk.Label(g_root, text = 'Up Top : ')
 	labelUpTop.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1621,7 +1851,7 @@ def main():
 	txtDownBottom.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtDownBottom['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Up Bottom
 	labelUpBottom = tk.Label(g_root, text = 'Up Bottom : ')
 	labelUpBottom.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1651,7 +1881,7 @@ def main():
 	txtMvStep.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtMvStep['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# wait ms
 	labelWaitMs = tk.Label(g_root, text = 'Wait ms : ')
 	labelWaitMs.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1662,7 +1892,7 @@ def main():
 	txtWaitMs.grid(row = row_idx, column = 3, sticky = tk.W)
 	txtWaitMs['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Sequence
 	btnSequence = tk.Button(master = g_root, text = 'SEQUENCE', command = Sequence_clicked, state = tk.DISABLED, width = 10)
 	btnSequence.grid(row = row_idx, column = 4, pady = 3)
@@ -1680,7 +1910,7 @@ def main():
 	txtMvFrom.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtMvFrom['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# to mV
 	labelMvTo = tk.Label(g_root, text = 'mV to : ')
 	labelMvTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
@@ -1691,7 +1921,7 @@ def main():
 	txtMvTo.grid(row = row_idx, column = 3, sticky = tk.W)
 	txtMvTo['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Stop
 	btnStop = tk.Button(master = g_root, text = 'STOP', command = Stop_clicked, state = tk.DISABLED, width = 10)
 	btnStop.grid(row = row_idx, column = 4)
@@ -1705,6 +1935,76 @@ def main():
 	row_idx += 1
 
 	########################################
+	# pwm step
+	labelPwmStep = tk.Label(g_root, text = 'PWM Step : ')
+	labelPwmStep.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtPwmStep = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtPwmStep.delete(0, tk.END)
+	txtPwmStep.insert(tk.END, '2')
+	txtPwmStep.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtPwmStep['state'] = tk.DISABLED
+
+	#---------------------------------------
+	# Pwm Move
+	labelPwmMove = tk.Label(g_root, text = 'Pwm Move : ')
+	labelPwmMove.grid(row = row_idx, column = 2, sticky = tk.E, pady = 10)
+
+	cbPwmMove = ttk.Combobox(g_root, width = 6, value = PwmMoveText, state = tk.DISABLED)
+	cbPwmMove.set(PwmMoveText[2])
+	cbPwmMove.grid(row = row_idx, column = 3, sticky = tk.W)
+
+	row_idx += 1
+
+	########################################
+	# from pwm
+	labelPwmFrom = tk.Label(g_root, text = 'PWM from : ')
+	labelPwmFrom.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtPwmFrom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtPwmFrom.delete(0, tk.END)
+	txtPwmFrom.insert(tk.END, '100')
+	txtPwmFrom.grid(row = row_idx, column = 1, sticky = tk.W)
+	txtPwmFrom['state'] = tk.DISABLED
+
+	#---------------------------------------
+	# to pwm
+	labelPwmTo = tk.Label(g_root, text = 'PWM to : ')
+	labelPwmTo.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtPwmTo = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
+	txtPwmTo.delete(0, tk.END)
+	txtPwmTo.insert(tk.END, '300')
+	txtPwmTo.grid(row = row_idx, column = 3, sticky = tk.W)
+	txtPwmTo['state'] = tk.DISABLED
+
+	row_idx += 1
+
+	########################################
+	#
+	border7 = ttk.Separator(g_root, orient = 'horizontal')
+	border7.grid(row = row_idx, column = 2, pady = 3, sticky = 'ew')
+	row_idx += 1
+
+	########################################
+	# Scale
+	labelScale = tk.Label(g_root, text = 'Scale : ')
+	labelScale.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
+
+	txtScale = tk.Label(g_root, text = '0 g')
+	txtScale.grid(row = row_idx, column = 1, sticky = tk.W, pady = 3)
+
+	#---------------------------------------
+	# Current
+	labelCurrent = tk.Label(g_root, text = 'Current : ')
+	labelCurrent.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
+
+	txtCurrent = tk.Label(g_root, text = '0 mA')
+	txtCurrent.grid(row = row_idx, column = 3, sticky = tk.W, pady = 3)
+
+	row_idx += 1
+
+	########################################
 	# Loop Times
 	labelLoopTimes = tk.Label(g_root, text = 'Loop Times : ')
 	labelLoopTimes.grid(row = row_idx, column = 0, sticky = tk.E, pady = 3)
@@ -1715,7 +2015,7 @@ def main():
 	txtLoopTimes.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtLoopTimes['state'] = tk.DISABLED
 
-	########################################
+	#---------------------------------------
 	# Remain Sec
 	labelRemaimSec = tk.Label(g_root, text = 'Remain : ')
 	labelRemaimSec.grid(row = row_idx, column = 2, sticky = tk.E, pady = 3)
