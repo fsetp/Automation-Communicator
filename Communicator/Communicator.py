@@ -1941,7 +1941,7 @@ def main():
 
 	txtPwmStep = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
 	txtPwmStep.delete(0, tk.END)
-	txtPwmStep.insert(tk.END, '2')
+	txtPwmStep.insert(tk.END, '1')
 	txtPwmStep.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtPwmStep['state'] = tk.DISABLED
 
@@ -1963,7 +1963,7 @@ def main():
 
 	txtPwmFrom = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
 	txtPwmFrom.delete(0, tk.END)
-	txtPwmFrom.insert(tk.END, '100')
+	txtPwmFrom.insert(tk.END, '0')
 	txtPwmFrom.grid(row = row_idx, column = 1, sticky = tk.W)
 	txtPwmFrom['state'] = tk.DISABLED
 
@@ -1974,7 +1974,7 @@ def main():
 
 	txtPwmTo = ttk.Entry(g_root, width = 6, state = tk.NORMAL)
 	txtPwmTo.delete(0, tk.END)
-	txtPwmTo.insert(tk.END, '300')
+	txtPwmTo.insert(tk.END, '255')
 	txtPwmTo.grid(row = row_idx, column = 3, sticky = tk.W)
 	txtPwmTo['state'] = tk.DISABLED
 
