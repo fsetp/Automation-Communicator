@@ -527,8 +527,8 @@ def InitProcess():
 
 	# if pwm selected
 	elif (cbDacMethod.current() == METHOD_PWM):
-		g_From  = int(txtPWmFrom.get())
-		g_To    = int(txtPWmTo.get())
+		g_From  = int(txtPwmFrom.get())
+		g_To    = int(txtPwmTo.get())
 		g_Step  = int(txtPwmStep.get())
 		g_Times = 0
 
@@ -610,7 +610,7 @@ def PreProcess():
 
 		# set value
 		#
-		SetPwmValue(g_LoopCh, g_PwmValue)
+		SetPwmValue(g_LoopCh, g_LoopValue)
 
 	# make wait count
 	g_WaitItvMs = g_WaitMs / g_IntervalMs
